@@ -20,7 +20,7 @@ A non-playing observer attached to a room's public view. A spectator can consume
 A single Uno game, from initial dealing to final placement in that game.
 
 **Match**  
-A bounded series of up to **three games** played by the same room roster. Tournament rooms always run a match. Casual rooms may be modeled as a match profile with `maxGames = 1`.
+A bounded series of up to **three games** played by the same room roster. Tournament rooms always run a match. <mark>Casual rooms may be modeled as a match profile with `maxGames = 1`.</mark>
 
 **Round**  
 A single elimination tier of a tournament. A round partitions eligible players into rooms and produces a reduced set of advancing players.
