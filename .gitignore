@@ -1,0 +1,140 @@
+# ------------------------------
+# OS / Filesystem
+# ------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ------------------------------
+# Editor / IDE
+# ------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# ------------------------------
+# Logs / Runtime dumps
+# ------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.pid
+*.pid.lock
+*.seed
+*.stackdump
+
+# ------------------------------
+# Environment / Secrets
+# ------------------------------
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ------------------------------
+# Dependency directories
+# ------------------------------
+node_modules/
+.bower/
+vendor/
+
+# ------------------------------
+# Build / Distribution / Coverage
+# ------------------------------
+dist/
+build/
+out/
+coverage/
+.tmp/
+tmp/
+.cache/
+.eslintcache
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+
+# ------------------------------
+# Python
+# ------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.venv/
+venv/
+
+# ------------------------------
+# Java / JVM
+# ------------------------------
+.gradle/
+.target/
+*.class
+
+# ------------------------------
+# Rust
+# ------------------------------
+target/
+Cargo.lock
+
+# ------------------------------
+# Go
+# ------------------------------
+bin/
+*.test
+
+# ------------------------------
+# Docker / Containers
+# ------------------------------
+.docker/
+*.tar
+
+# ------------------------------
+# Terraform
+# ------------------------------
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+
+# ------------------------------
+# Archives / packaged artifacts
+# ------------------------------
+*.7z
+*.gz
+*.zip
+*.tar
+*.tgz
+*.bz2
+*.rar
+
+# ------------------------------
+# Keep documentation tracked by default
+# ------------------------------
+# (No markdown exclusions on purpose)
