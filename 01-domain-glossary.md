@@ -20,13 +20,13 @@ A non-playing observer attached to a room's public view. A spectator can consume
 A single Uno game, from initial dealing to final placement in that game.
 
 **Match**  
-A bounded series of up to **three games** played by the same room roster. Tournament rooms always run a match. <mark>Casual rooms may be modeled as a match profile with `maxGames = 1`.</mark>
+A best-of-three series played by the same room roster. A match concludes when final placements are determined through game wins and relevant tie-breakers. Tournament rooms always run a match. Casual rooms may be modeled as a match profile with a single game (`maxGames = 1`).
 
 **Round**  
 A single elimination tier of a tournament. A round partitions eligible players into rooms and produces a reduced set of advancing players.
 
 **Tournament**  
-The full competition lifecycle, from registration through final room completion.
+A massive, multi-tiered elimination competition spanning from registration through bracket progression, ending at the final room.
 
 **Final Room**  
 The last tournament room created once the tournament has 10 or fewer remaining players. It resolves the tournament's final placements.
@@ -39,17 +39,11 @@ The exclusive opportunity for a single seat to act in a game. A turn begins when
 **Action**  
 A player-intended operation against room gameplay state, such as play card, draw card, call Uno, challenge Uno, or pass when pass is legal.
 
-**Sequence Number**  
-A client-supplied expected state token representing the room's current authoritative version. It prevents stale or reordered commands from mutating room state.
+**Hand**  
+The set of cards currently held by a player. Hand size may be securely published for spectators, but card identities remain strictly private.
 
 **Legal Move**  
 An action accepted by the game rules and the room's current authoritative state.
-
-**Stale Command**  
-A command targeting an older room version than the current one. It is rejected and produces no gameplay state transition.
-
-**Replay Command**  
-A repeated command with the same idempotency key or action identifier. It returns the prior outcome and does not execute twice.
 
 **Challenge Window**  
 The 5-second interval during which an opponent may challenge whether the acting player correctly called “Uno!” after reaching one remaining card. It closes earlier if the next player begins their turn.
@@ -75,6 +69,9 @@ The ordered sequence of publicly played cards. It is visible to players and spec
 **Draw Pile**  
 The hidden remaining deck from which cards are drawn.
 
+**Seeded Deck**  
+The randomly ordered deck generated server-side by an authoritative RNG service, ensuring auditable and replay-safe card draws.
+
 **Card-Point Total**  
 The cumulative point total of unplayed cards used as a tournament tie-breaker when players tie on match wins.
 
@@ -94,6 +91,9 @@ The act of being removed from further tournament contention.
 
 **Round Seeding**  
 The process of assigning eligible players to rooms for a round.
+
+**Tie-breaker**  
+Rules applied to determine tournament advancement when match wins are tied. The required order is: higher match wins, lower card-point totals, and earliest completion timestamp.
 
 **Placement**  
 The final ordering of players in a completed game, room, match, or tournament, depending on context.
@@ -123,6 +123,20 @@ A terminal loss triggered by policy. In casual rooms, the player leaves the game
 
 **Late Rejoin**  
 A reconnect attempt after the disconnect window expired or after session invalidation. It does not restore gameplay authority.
+
+### Consistency and execution terms
+
+**Authoritative State**  
+The single source of truth for gameplay progression, managed exclusively by the RoomSession aggregate, preventing concurrent illegal actions.
+
+**Sequence Number**  
+A client-supplied expected state token representing the room's current authoritative version. It prevents stale or reordered commands from mutating room state.
+
+**Stale Command**  
+A command targeting an older room version than the current one. It is rejected and produces no gameplay state transition.
+
+**Replay Command**  
+A repeated command with the same idempotency key or action identifier. It returns the prior outcome and does not execute twice.
 
 **Audit Log**  
 An immutable record of sensitive domain decisions, including session invalidation, authoritative random outcomes, disputes, and penalties.
