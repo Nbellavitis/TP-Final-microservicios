@@ -19,15 +19,15 @@ This submission covers:
 
 ## Document index
 
-1. [01-domain-glossary.md](./unoarena-ddd/01-domain-glossary.md)
-2. [02-bounded-contexts-and-context-map.md](./unoarena-ddd/02-bounded-contexts-and-context-map.md)
-3. [03-aggregates-entities-value-objects.md](./unoarena-ddd/03-aggregates-entities-value-objects.md)
-4. [04-commands-and-domain-events.md](./unoarena-ddd/04-commands-and-domain-events.md)
-5. [05-domain-event-flows.md](./unoarena-ddd/05-domain-event-flows.md)
-6. [06-edge-cases-and-failure-paths.md](./unoarena-ddd/06-edge-cases-and-failure-paths.md)
-7. [07-consistency-and-recovery-strategy.md](./unoarena-ddd/07-consistency-and-recovery-strategy.md)
-8. [08-open-questions-and-assumptions.md](./unoarena-ddd/08-open-questions-and-assumptions.md)
-9. [09-eventstorming-outcome.md](./unoarena-ddd/09-eventstorming-outcome.md)
+1. [01-domain-glossary.md](01-domain-glossary.md)
+2. [02-bounded-contexts-and-context-map.md](02-bounded-contexts-and-context-map.md)
+3. [03-aggregates-entities-value-objects.md](03-aggregates-entities-value-objects.md)
+4. [04-commands-and-domain-events.md](04-commands-and-domain-events.md)
+5. [05-domain-event-flows.md](05-domain-event-flows.md)
+6. [06-edge-cases-and-failure-paths.md](06-edge-cases-and-failure-paths.md)
+7. [07-consistency-and-recovery-strategy.md](07-consistency-and-recovery-strategy.md)
+8. [08-open-questions-and-assumptions.md](08-open-questions-and-assumptions.md)
+9. [09-eventstorming-outcome.md](09-eventstorming-outcome.md)
 
 ## Modeling stance
 
