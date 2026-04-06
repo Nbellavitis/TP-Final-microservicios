@@ -126,17 +126,17 @@ This keeps the most timing-sensitive invariants inside a single authoritative ga
 
 ```mermaid
 flowchart LR
-    IS[Identity & Session] --> RG[Room Gameplay]
-    IS --> TO[Tournament Orchestration]
+    IS[Identity & Session] -- "Customer / Supplier" --> RG[Room Gameplay]
+    IS -- "Customer / Supplier" --> TO[Tournament Orchestration]
 
-    RG --> SV[Spectator View]
-    RG --> RK[Ranking]
-    RG --> AU[Compliance & Audit]
-    RG --> TO[Tournament Orchestration]
+    RG -- "Open Host Service (ACL)" --> SV[Spectator View]
+    RG -- "Published Language" --> RK[Ranking]
+    RG -- "Append-Only Feed" --> AU[Compliance & Audit]
+    RG -- "Published Language" --> TO[Tournament Orchestration]
 
-    TO --> SV
-    TO --> RK
-    TO --> AU
+    TO -- "Open Host Service" --> SV
+    TO -- "Published Language" --> RK
+    TO -- "Append-Only Feed" --> AU
 
     RK --> SV
 ```
@@ -144,27 +144,27 @@ flowchart LR
 ## Relationship descriptions
 
 ### Identity & Session -> Room Gameplay
-**Type**: upstream supplier  
+**Type**: Customer / Supplier (C/S)  
 Room Gameplay depends on session validity and single-active-session semantics before accepting commands.
 
 ### Identity & Session -> Tournament Orchestration
-**Type**: upstream supplier  
+**Type**: Customer / Supplier (C/S)  
 Tournament enrollment, rejoin rights, and elimination identity integrity depend on canonical player/session identity.
 
 ### Room Gameplay -> Tournament Orchestration
-**Type**: published language / event-driven downstream consumption  
+**Type**: Published Language (PL) / Event-Driven  
 Tournament Orchestration consumes authoritative room outcomes, never infers them. It reacts to room completion and match result events.
 
 ### Room Gameplay -> Ranking
-**Type**: published language / event-driven downstream consumption  
+**Type**: Published Language (PL) / Event-Driven  
 Ranking consumes authoritative completed casual game placements and ignored-abandonment decisions.
 
 ### Room Gameplay -> Spectator View
-**Type**: anti-corruption/public projection  
-Spectator View receives only sanitized public events and snapshots, never private hand state or hidden deck information.
+**Type**: Open Host Service (OHS) / Anti-Corruption Layer (ACL)  
+Spectator View receives only sanitized public events and snapshots, never private hand state or hidden deck information. The ACL protects public consumers from hidden internal representations.
 
 ### Tournament Orchestration -> Spectator View
-**Type**: published read-model feed  
+**Type**: Open Host Service (OHS)  
 Bracket creation, round progression, elimination, and final placements become public tournament views.
 
 ### Room Gameplay + Tournament Orchestration -> Compliance & Audit

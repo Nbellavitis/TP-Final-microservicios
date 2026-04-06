@@ -180,7 +180,7 @@ This keeps Tournament Orchestration downstream of gameplay authority.
 2. Room Gameplay finalizes placement order.
 3. If the game is abandoned, it emits `GameAbandoned` and no Elo update is requested.
 4. If the game is valid and casual, Ranking is asked to apply the outcome.
-5. Ranking updates each affected player's casual Elo exactly once.
+5. Ranking receives the event and ensures exactly-once processing by deduplicating against the `sourceGameOutcomeId`.
 6. Rating history is recorded.
 
 ## 3.2 Event sequence

@@ -136,11 +136,26 @@ or
 - allowed only if:
   1. the new session is now the active session for the player, and
   2. the room reconnect window is still open
-- gameplay continuity is restored under the new active session identity
+- gameplay continuity is restored under the new active session identity.
+- *Note on trust mechanisms:* The API gateway or Identity Context validates the new session token and injects the stable canonical `PlayerId` into the command payload. Room Gameplay checks the seated `PlayerId` rather than the `SessionId` to resume the game, while continuing to obey the new `expectedSequence`.
 
 **Events**
 - `PreviousSessionInvalidated`
 - `PlayerReconnected`
+
+---
+
+### Scenario E: All opponents forfeit during an active game (Last Man Standing)
+**Expected behavior**
+- the single remaining player is immediately placed 1st by default.
+- the game completes automatically since no valid competitive state remains.
+- casual room: match outcome is resolved.
+- tournament room: final match outcomes evaluate immediately, guaranteeing the remaining player advances.
+
+**Events**
+- `PlayerForfeited` (for the final disconnecting opponent)
+- `GameCompleted` (with last man standing declared winner)
+- `MatchCompleted` / `RoomCompleted`
 
 ---
 
