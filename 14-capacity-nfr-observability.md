@@ -206,7 +206,24 @@ Reason: Boundaries in the DDD design require independent ownership of hidden gam
 
 Consequence: Integration uses published events and APIs; consumers must tolerate eventual consistency and duplicates.
 
-## 6. Residual risks and explicit bounds
+## 6. Course best-practice review
+
+The archive/course material highlights common patterns and anti-patterns. The architecture aligns as follows:
+
+| Course pattern / risk | Architecture stance |
+|---|---|
+| Database per service | Each bounded context owns its persistence; no shared operational database is used |
+| API Gateway / BFF | Public REST commands and SSE subscription setup pass through edge gateways |
+| Event-driven communication | Cross-context facts use Kafka/event-log topics with partition keys, consumer groups, replay, and idempotent consumers |
+| Saga over distributed transactions | Tournament advancement and room provisioning use an orchestrated saga/process manager; no 2PC-style distributed DB transaction |
+| CQRS/read models | Spectator View, brackets, leaderboards, and public stats are projections, not authoritative write models |
+| Anti-Corruption Layer | Spectator View and downstream consumers translate published events into local projection models instead of sharing Room Gameplay internals |
+| Avoid distributed monolith | Services do not share DBs, do not require synchronous chains for core gameplay, and can scale independently |
+| Avoid chatty microservices | Hot gameplay validation remains inside `RoomSession`; downstream effects use batched/event-driven propagation |
+| Avoid event soup | Topics have named owners, allowed event types, idempotency keys, and versioned contracts |
+| Observability | Correlation ids, causation ids, structured logs, lag metrics, and dashboards are defined for async flows |
+
+## 7. Residual risks and explicit bounds
 
 - Exact cloud sizing, instance types, and OS-level file descriptor tuning are intentionally out of scope, but the realtime tier is explicitly isolated so those concerns do not overload gameplay services.
 - If spectator demand reaches the 10,000,000 connection worst case, capacity depends on regional realtime edges and quotas. This does not change gameplay correctness.

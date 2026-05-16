@@ -2,6 +2,18 @@
 
 This document covers deliverable 6.1: each bounded context from the design package, its deployable services, public interfaces, async contracts, internal interfaces, and dependencies.
 
+## 0. Internal architecture style
+
+Each deployable service should be implemented as a hexagonal service inside its bounded context:
+
+- inbound adapters: REST controllers, internal command handlers, and Kafka/event consumers
+- application/use-case layer: command orchestration, transaction boundaries, idempotency checks, and policy execution
+- domain core: aggregates, entities, value objects, and domain services from the design package
+- outbound ports: repositories/event stores, outbox publisher, session validation, RNG/Deck access, broker publishing, cache/quota access
+- outbound adapters: PostgreSQL/event store, Kafka, Redis/Valkey, object storage, or internal HTTP/gRPC clients
+
+This keeps business rules inside `RoomSession`, `TournamentRound`, `PlayerSession`, and `RatingProfile`, rather than leaking invariants into controllers, Kafka consumers, or database schemas. Infrastructure technologies are adapters around the domain, not the reason for the bounded context split.
+
 ## 1. Identity & Session Context
 
 ### Purpose and scope
