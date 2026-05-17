@@ -200,7 +200,14 @@ For a rating request:
 5. append rating history entry
 6. write outbox event
 
-Multi-player Elo calculation can be coordinated by a rating update batch keyed by `sourceGameOutcomeId`, then applied to each involved `RatingProfile` idempotently.
+Multi-player Elo calculation is coordinated by a `RatingUpdateBatch` record keyed by `sourceGameOutcomeId`:
+
+1. The Rating Command Consumer creates a `RatingUpdateBatch` in `pending` state with all involved player deltas computed from the consistent source outcome.
+2. The batch transitions to `applying` as per-player `RatingProfile` updates are applied idempotently.
+3. Each per-player application is tracked; incomplete applications are retried idempotently by `sourceGameOutcomeId:playerId`.
+4. When all player updates have been applied, the batch transitions to `complete`.
+5. If a player update fails after retries, the batch transitions to `failed_needs_repair` and an operator alert is raised.
+6. Leaderboard projection workers read only from committed `RatingProfile` and `RatingHistory` entries; a batch that is not yet `complete` does not affect leaderboard views.
 
 ### Read models
 

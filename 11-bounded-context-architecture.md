@@ -84,7 +84,9 @@ It does not own tournament-wide seeding, global Elo formulas, identity issuance,
 | RNG/Deck Service | Internal deterministic shuffles/draws by seed and draw cursor; never exposed to clients |
 | Room Timer Scheduler | Durable timer ownership for `UnoChallengeWindow` and `DisconnectWindow` deadlines |
 | Room Outbox Relay | Publishes committed authoritative, public, outcome, timer, and audit events from the room outbox |
+| Player Stream Projector | Produces per-player private deltas from the room transaction; writes `room.gameplay.player-private.v1` events keyed by `roomId` and carrying `recipientPlayerId` |
 | Room Query API | Player-only snapshots and current state queries using authorized projection scopes |
+| Room Creation Command Consumer | Consumes `CreateRoom` commands from `room.commands.v1` for tournament-bound room creation; primary async provisioning path |
 | Room Log Replay API | Internal dispute/replay access to immutable game logs |
 
 ### Synchronous public interfaces
@@ -117,10 +119,11 @@ It does not own tournament-wide seeding, global Elo formulas, identity issuance,
 
 | Topic | Producer | Consumers | Event types | Payload ownership and idempotency |
 |---|---|---|---|---|
-| `room.lifecycle.v1` | Room Outbox Relay | Spectator Projection, Audit, Tournament Orchestration for readiness | `RoomCreated`, `RoomTypeAssigned`, `PlayerSeated`, `RoomRosterUpdated`, `RoomRosterLocked`, `RoomStarted`, `RoomCompleted`, `TournamentRoomReady` | Owned by Room Gameplay; keyed by `roomId`; event id + `roomSequence` |
+| `room.lifecycle.v1` | Room Outbox Relay | Spectator Projection, Audit, Tournament Orchestration for readiness | `RoomCreated`, `RoomTypeAssigned`, `PlayerSeated`, `RoomRosterUpdated`, `RoomRosterLocked`, `RoomStarted`, `RoomCompleted`, `TournamentRoomReady` | Owned by Room Gameplay; keyed by `roomId`; event id + `roomSequence`. `TournamentRoomReady` is produced by Room Gameplay after a tournament-bound room is ready; Tournament Orchestration consumes it via `RecordTournamentRoomReady` — the domain command triggered by this readiness fact. |
 | `room.gameplay.authoritative.v1` | Room Outbox Relay | Audit, replay/analytics jobs, restricted internal consumers | `MatchStarted`, `GameInitialized`, `InitialHandsDealt`, `TurnBegan`, `CardPlayed`, `ColorChosen`, `CardDrawn`, `TurnEffectApplied`, `UnoDeclared`, `PenaltyApplied`, `CardsPenaltyDrawn`, `TurnAdvanced`, disconnect/forfeit events | May include hidden card references or seed commitments where authorized; never consumed by Spectator View |
 | `room.gameplay.public.v1` | Room Outbox Relay after public projection at write boundary | Spectator Projection, Realtime Gateway player public stream | Public envelopes of documented events such as `TurnBegan`, `CardPlayed`, `ColorChosen`, `UnoChallengeResolved`, `PlayerDisconnected`, `PlayerReconnected` | Whitelisted payload only; no hands, draw pile, future RNG, or session data |
-| `room.outcomes.v1` | Room Outbox Relay | Tournament Result Consumer, Ranking, Audit, analytics | `GameCompleted`, `GameAbandoned`, `PlacementRecorded`, `CardPointTotalsRecorded`, `MatchScoreUpdated`, `MatchCompleted`, `RoomCompleted`, `EloUpdateRequested` | `sourceGameOutcomeId`, `roomCompletionEventId`, `roomType`, `outcomeKind`; dedupe by source id |
+| `room.gameplay.player-private.v1` | Player Stream Projector (written in the same room transaction as authoritative and public events) | Realtime Gateway (player streams only) | Per-player private deltas: `HandUpdated`, `CardDrawnPrivate`, `InitialHandDealt`, `ReconnectSnapshotPrivate`, `StaleStateCorrection` | Keyed by `roomId`; each event carries `recipientPlayerId`. The Realtime Gateway subscribes only after token/session validation and emits events exclusively where `recipientPlayerId` matches the authenticated session principal. Never consumed by Spectator View. |
+| `room.outcomes.v1` | Room Outbox Relay | Tournament Result Consumer, Ranking, Audit, analytics | `GameCompleted`, `GameAbandoned`, `PlacementRecorded`, `CardPointTotalsRecorded`, `MatchScoreUpdated`, `MatchCompleted`, `RoomCompleted`, `EloUpdateRequested` | `sourceGameOutcomeId`, `roomCompletionEventId`, `roomType`, `outcomeKind`; dedupe by source id. `RoomCompleted` payload carries: match wins per player, cumulative card-point totals, final-game completion timestamps, forfeit/elimination flags, outcome kind (`completed`, `abandoned`, `forfeited`), and `roomCompletionEventId`. |
 | `room.security.v1` | Room Outbox Relay | Audit, fraud/risk, observability | `StaleCommandRejected`, `ReplayCommandIgnored`, `IllegalMoveRejected`, `RateLimitTriggered`, `SpectatorPrivacyViolationPrevented`, `SecurityAuditRecorded` | command/action id and correlation id |
 
 ### Log-before-broadcast implementation
@@ -212,8 +215,8 @@ Internal result intake is event-first, but an idempotent internal endpoint may e
 | Topic | Producer | Consumers | Event types | Idempotency/correlation |
 |---|---|---|---|---|
 | `tournament.lifecycle.v1` | Tournament Orchestrator | Spectator Projection, Audit, Ranking for placement trigger, analytics | `TournamentCreated`, `TournamentRegistrationOpened`, `PlayerRegisteredForTournament`, `TournamentRegistrationClosed`, `TournamentStarted`, `RoundCreated`, `RoundCompleted`, `FinalRoomRequired`, `FinalRoomCreated`, `TournamentPlacementsFinalized`, `TournamentCompleted` | `tournamentEventId`, `tournamentId`, `roundId`, `correlationId` |
-| `tournament.round-assignments.v1` | Round Kickoff Planner | Round Provisioning Workers, Audit | `PlayersPartitionedIntoRooms`, `TournamentRoomProvisionRequested` | deterministic `assignmentId`, `roomId`, shard id |
-| `room.commands.v1` | Round Provisioning Workers | Room Command API / Room creation workers | wrapped `CreateRoom` command for tournament-bound rooms | idempotent by deterministic `roomId` and `assignmentId` |
+| `tournament.round-assignments.v1` | Round Kickoff Planner | Round Provisioning Workers, Audit | `PlayersPartitionedIntoRooms`, `TournamentRoomProvisionRequested` | deterministic `assignmentId`, `roomId`, shard id; `PlayersPartitionedIntoRooms` includes `expectedRoomCount` and `roundVersion` so downstream projections can track provisioning completeness |
+| `room.commands.v1` | Round Provisioning Workers | Room Creation Command Consumer (inside Room Gameplay) | wrapped `CreateRoom` command for tournament-bound rooms | Primary async provisioning path for tournament-bound rooms. Idempotent by deterministic `roomId` and `assignmentId`. Failure semantics: command topic retry, DLQ by `assignmentId`, idempotent room creation by `roomId`, and reconciliation from committed assignment manifest to `TournamentRoomReady`. The internal REST endpoint (`POST /internal/rooms`) is retained only for low-volume reconciliation or administrative repair. |
 | `tournament.results.v1` | Tournament Orchestrator | Spectator Projection, Audit, Ranking placement trigger | `TournamentRoomResultRecorded`, `RoomAdvancementEvaluated`, `PlayersAdvanced`, `PlayersEliminated`, `TournamentPlacementRatingUpdateRequested` | dedupe by `roomCompletionEventId`; player decisions keyed by `tournamentId:roundId:playerId` |
 
 ### First-round surge mechanism
@@ -225,8 +228,8 @@ The mechanism is:
 1. `StartTournament` commits `TournamentStarted`, `RoundCreated`, and a round provisioning plan.
 2. Round Kickoff Planner creates deterministic assignment shards, for example by `hash(tournamentId, roundId, assignmentId)`.
 3. `PlayersPartitionedIntoRooms` and many `TournamentRoomProvisionRequested` messages are published to partitioned queues.
-4. Round Provisioning Workers consume shards in parallel and call Room Gameplay with deterministic `roomId`, `roundId`, `assignmentId`, `matchProfile=maxGames:3`.
-5. Room Gameplay treats duplicate room creation as idempotent and emits `TournamentRoomReady`.
+4. Round Provisioning Workers consume shards in parallel and publish idempotent `CreateRoom` command envelopes to `room.commands.v1` with deterministic `roomId`, `roundId`, `assignmentId`, `matchProfile=maxGames:3`.
+5. Room Creation Command Consumer (inside Room Gameplay) processes command envelopes, treats duplicate room creation as idempotent, and emits `TournamentRoomReady` on `room.lifecycle.v1`.
 6. Tournament Orchestration tracks shard progress and room readiness, but failed shards do not block successful shards.
 
 Partial failure handling:
@@ -378,7 +381,8 @@ Coherence rules:
 - per-room public deltas are applied in `roomSequence`
 - tournament bracket updates are applied by `roundVersion` or tournament event version
 - duplicate `RoomCompleted` or advancement events are ignored by source event id
-- public bracket views can show an `updating` marker until all expected room results for the round have projected
+- Tournament Orchestration publishes `expectedRoomCount` in `PlayersPartitionedIntoRooms` (on `tournament.round-assignments.v1`) and in `RoundCreated` (on `tournament.lifecycle.v1`) with the `roundVersion`; the Spectator Projection marks a round as fully projected only after it has received all expected room-result and advancement events for that round version
+- until projection is complete, public bracket views expose a coherent partial state with `projectionStatus=updating`
 - acceptable read-model staleness is seconds to low minutes during the largest completion spikes, but authoritative tournament closure remains in Tournament Orchestration
 
 ### Dependencies

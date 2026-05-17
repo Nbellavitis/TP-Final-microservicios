@@ -129,7 +129,7 @@ flowchart LR
 | Sequence-number enforcement | Room Command API validates request shape; Room Engine Pods enforce it inside the `RoomSession` command handler with optimistic append on `(roomId, sequence)` | If a pod restarts after receiving a command but before commit, the client retries with the same `actionId`; the recovered room snapshot/game log decides whether it was accepted or rejected. Stale or replayed commands emit `StaleCommandRejected` or `ReplayCommandIgnored`. |
 | Log-before-broadcast atomicity | Room Engine transaction appends authoritative events to the immutable game log and writes outbox rows in the same commit. Room Outbox Relay publishes only committed outbox rows | A crash after commit but before publish leaves outbox rows pending. A crash before commit publishes nothing. Therefore no client sees a state change that is absent from the game log. |
 | 5-second Uno challenge window | Room Engine persists `UnoChallengeWindow` with `expiresAt`; Room Timer Scheduler scans durable deadlines and sends `ExpireChallengeWindow` internally; Room Engine emits `UnoChallengeWindowClosed` with `closureReason=expired` or closes it earlier on `TurnBegan` | Scheduler workers are stateless and partitioned. On restart they reload due deadlines from the room timer table. Expiry command id is `roomId:gameId:challengeWindowId:expiresAt`, so duplicate expiries are ignored. |
-| 60-second reconnection window | Realtime Gateway detects player stream loss and calls `MarkPlayerDisconnected`; Room Engine persists `DisconnectWindow` and `reconnectDeadline`; Room Timer Scheduler later sends `ExpireReconnectWindow` | If the gateway or scheduler dies, the persisted deadline is recovered. `ReconnectPlayer` and `ExpireReconnectWindow` race through the same room sequence, so exactly one of `PlayerReconnected` or `ReconnectWindowExpired`/`PlayerForfeited` wins. |
+| 60-second reconnection window | Realtime Gateway detects player stream loss via Realtime Connection Registry (tracking `sessionId`, `playerId`, `roomId`, `connectionId`, `lastSeenAt`); calls `MarkPlayerDisconnected` when the last active connection for a `playerId:roomId` pair is gone or stale; Room Engine persists `DisconnectWindow` and `reconnectDeadline`; Room Timer Scheduler later sends `ExpireReconnectWindow` | If the gateway dies, a Session Continuity Worker reconciles by scanning stale Connection Registry records and issuing idempotent `MarkPlayerDisconnected` commands. The persisted deadline is recovered on scheduler restart. `ReconnectPlayer` and `ExpireReconnectWindow` race through the same room sequence, so exactly one of `PlayerReconnected` or `ReconnectWindowExpired`/`PlayerForfeited` wins. |
 | Single-active-session | Identity API updates `PlayerSession` and writes `PreviousSessionInvalidated`; Session Control Publisher fans out invalidation to Realtime Gateway instances and API auth caches | A new login is durable before the new token is returned. If a gateway misses the push, its short-lived auth cache also checks session version; stale SSE streams are closed when the control event is replayed or on next heartbeat/session-version check. |
 | Spectator projection privacy | Spectator Projection Ingestor consumes only public gameplay/tournament topics and validates schemas against an allow-list before writing Public View Store | If a malformed public event contains private fields, the ingestor rejects and quarantines it, emits `PublicProjectionSchemaViolationDetected`, and does not update the public view. |
 | Match series coordination | Room Engine owns `MatchState` inside `RoomSession`; `AdvanceMatchSeries` starts game 2/3 or emits `MatchCompleted`; Tournament Orchestration consumes only final `RoomCompleted` outcomes | Room restart reloads `MatchState` from the game log/snapshot. A duplicate `GameCompleted` cannot start a duplicate next game because `AdvanceMatchSeries` is idempotent by `gameId` and room sequence. |
@@ -155,10 +155,9 @@ sequenceDiagram
     RAPI->>Engine: Route by roomId
     Engine->>Engine: Load RoomSession snapshot/log tail
     Engine->>Engine: Validate session, active turn, expectedSequence, rules
-    opt Draw or initial deal required
-        Engine->>RNG: Request deterministic draw/shuffle by roomId/gameId/seed
-        RNG-->>Engine: Seeded draw result / commitment
-    end
+    Note over Engine: Draw uses persisted deck/cursor from GameInitialized;
+    Note over Engine: no per-action RNG call on the hot path.
+    Engine->>Engine: Advance local draw cursor if draw required
     Engine->>Store: Atomic commit:<br/>append CardPlayed/ColorChosen/etc<br/>append outbox rows
     Store-->>Engine: Commit acknowledged
     Engine-->>RAPI: CommandAccepted + new roomSequence
@@ -185,7 +184,7 @@ sequenceDiagram
     participant TDB as Tournament Store
     participant KICK as Round Kickoff Planner
     participant PROV as Provisioning Workers
-    participant RAPI as Room Command API
+    participant RCC as Room Creation Consumer
 
     Engine->>Engine: MatchState reaches terminal best-of-three outcome
     Engine->>Store: Commit MatchCompleted, RoomCompleted,<br/>PlacementRecorded, CardPointTotalsRecorded
@@ -202,8 +201,9 @@ sequenceDiagram
         TO->>KICK: Start sharded kickoff plan
         KICK->>PROV: Enqueue assignment shards
         loop Each shard
-            PROV->>RAPI: CreateRoom tournament-bound with deterministic roomId
-            RAPI-->>PROV: RoomCreated or prior idempotent result
+            PROV->>Bus: Publish CreateRoom command on room.commands.v1<br/>with deterministic roomId and assignmentId
+            Bus-->>RCC: Room Creation Consumer processes command
+            RCC->>RCC: Create room idempotently by roomId
         end
     else Outstanding rooms remain
         TO->>TDB: Keep round awaiting results

@@ -44,6 +44,45 @@ Identity & Session publishes `PreviousSessionInvalidated` and `SessionInvalidate
 
 Spectators subscribe only to Spectator View projections. They never subscribe to `room.gameplay.authoritative.v1` and never receive player private hand payloads. Player streams can include private deltas only for the authenticated seated player; spectators use separate route prefixes and separate projection storage.
 
+### Player-private realtime delivery
+
+Players need private hand updates that spectators must never see. The architecture addresses this through a dedicated topic and gateway filtering:
+
+1. The Room Engine transaction writes authoritative log events plus outbox rows for public deltas and per-player private deltas in the same commit.
+2. The Player Stream Projector produces events on `room.gameplay.player-private.v1`, keyed by `roomId`. Each event carries a `recipientPlayerId` field.
+3. The Realtime Gateway subscribes to `room.gameplay.player-private.v1` only after token/session validation and emits events exclusively where `recipientPlayerId` matches the active session principal.
+4. Spectator View remains exclusively on `room.gameplay.public.v1` and has no access to the player-private topic.
+
+Private deltas include:
+
+- the card identity a player drew (`CardDrawnPrivate`)
+- the player's own current hand after a draw, penalty, or initial deal (`HandUpdated`, `InitialHandDealt`)
+- a private correction snapshot after reconnect (`ReconnectSnapshotPrivate`)
+- a private rejection/reconciliation response if the player's local state is stale (`StaleStateCorrection`)
+
+### Presence and disconnect detection
+
+SSE is server-to-client, so detecting a client disconnect requires explicit architectural support. The Realtime Gateway maintains a **Realtime Connection Registry** with durable or replicated records:
+
+| Field | Purpose |
+|---|---|
+| `sessionId` | Active session identifier |
+| `playerId` | Canonical player identity |
+| `roomId` | Room the player stream is connected to |
+| `connectionId` | Unique stream connection identifier |
+| `lastSeenAt` | Last successful heartbeat or data write timestamp |
+| `sessionVersion` | Validates against Identity session truth |
+
+Disconnect detection mechanism:
+
+1. The Realtime Gateway periodically writes SSE heartbeat comments (`:heartbeat`) to each player stream. A failed write (TCP close, broken pipe) marks the connection as dead.
+2. Optionally, active players send a lightweight REST heartbeat (`POST /v1/rooms/{roomId}/heartbeat`) that updates `lastSeenAt`, but all gameplay commands remain REST-based.
+3. When the last active player gameplay connection for a given `playerId:roomId` pair is gone or stale past a configurable grace threshold, the gateway calls `MarkPlayerDisconnected` on Room Command API.
+4. A **Session Continuity Worker** runs independently and reconciles gateway crashes by scanning the Connection Registry for stale records (where `lastSeenAt` exceeds the grace threshold and no active connection exists). It issues idempotent `MarkPlayerDisconnected` commands for any orphaned entries.
+5. Multiple tabs or connections for the same `playerId:roomId` are tracked as separate `connectionId` entries. `MarkPlayerDisconnected` fires only when the last one is lost.
+
+This makes the 60-second reconnect window operationally credible across gateway restarts, network partitions, and half-open TCP sockets.
+
 ## 2. Rate limiting architecture
 
 Rate limiting is multi-layered. It is applied after enough identity information is available for user-scoped limits, but before expensive command execution.
@@ -124,15 +163,15 @@ Schema evolution is additive by default. Consumers must tolerate unknown fields 
 | Realtime Gateway | Room Command API | Internal REST command `MarkPlayerDisconnected` when the last player gameplay stream/heartbeat is lost | Maps to command 10 and events `PlayerDisconnected`, `ReconnectWindowOpened` | Duplicate disconnects dedupe by `disconnectWindowId`. If gateway crashes, session continuity worker reconciles missing disconnects. |
 | Room Timer Scheduler | Room Engine Pod | Internal command for challenge expiry, resulting in `UnoChallengeWindowClosed` | Durable 5-second Uno challenge window | Duplicate expiry ignored if window already closed by `TurnBegan` or prior expiry. Scheduler recovers from persisted deadlines. |
 | Room Timer Scheduler | Room Engine Pod | Internal command `ExpireReconnectWindow` | Maps to command 12 and events `ReconnectWindowExpired`, `PlayerMarkedInactive`, `PlayerForfeited` | Races with `ReconnectPlayer` are serialized by room sequence. Duplicate expiry is ignored. |
-| Room Engine Pod | RNG/Deck Service | Internal sync RPC by seed/draw cursor; deadline + circuit breaker | Supports server-authoritative seeded deck without exposing hidden state | If RPC fails before commit, command fails/retries with same `actionId`. Draw result is not broadcast unless the room transaction commits. |
+| Room Engine Pod | RNG/Deck Service | Internal sync RPC at `GameInitialized` or reshuffle to generate and persist a complete deterministic deck commitment by seed; not called per-draw. Deadline + circuit breaker. | Supports server-authoritative seeded deck without exposing hidden state. Keeps RNG off the per-action hot path after game initialization. | If RPC fails before `GameInitialized` commit, game init fails/retries. Once deck commitment and shuffled sequence are committed, each draw advances a persisted cursor inside the room transaction without further RNG calls. Audit stores deck commitment and seed for later replay verification. |
 | Room Engine Pod | Game Log + Outbox | Single local transaction: append domain events and outbox rows | Implements log-before-broadcast for every authoritative state change | Crash before commit publishes nothing. Crash after commit leaves relay to publish pending outbox rows. |
 | Room Outbox Relay | Event Log / Broker | Transactional outbox relay to `room.lifecycle.v1`, `room.gameplay.authoritative.v1`, `room.gameplay.public.v1`, `room.outcomes.v1`, `room.security.v1` | Fan-out without coupling downstream availability to gameplay writes | At-least-once publish. Consumers dedupe by `eventId` and `roomSequence`. Failed rows are retried; poison rows go to DLQ after quarantine. |
 | Event Log | Realtime Gateway player streams | Pub/sub consumption of committed room public/player-authorized events | Delivers SSE updates without burdening Room Engine Pods | If gateway lags, clients can resubscribe with last event id and fetch snapshot. Gameplay continues. |
 | Event Log | Spectator Projection Ingestors | Pub/sub from `room.gameplay.public.v1`, `tournament.lifecycle.v1`, `tournament.results.v1` | First-class public CQRS projection required by design | Projection lag does not affect gameplay. Malformed public payloads are rejected and audited. |
 | Spectator Projection | Realtime Gateway spectator streams | Read model + stream cursor via `spectator.public-updates.v1` | Prevents spectators from touching authoritative hidden state | If projection is unavailable, spectator stream degrades or reconnects from last public snapshot; no hidden data fallback is allowed. |
 | Tournament API | Tournament Orchestrator | Sync command handling for `CreateTournament`, `RegisterPlayerForTournament`, `StartTournament` | Tournament lifecycle requires immediate policy validation | Commands are idempotent by request id. Start is guarded by tournament aggregate version. |
-| Tournament Orchestrator | Round Kickoff Planner / Provisioning Workers | Saga/process manager; async sharded work messages carrying `PlayersPartitionedIntoRooms` and `TournamentRoomProvisionRequested` | Handles 100k first-round room provisioning without one synchronous choke point | Workers retry idempotently by `assignmentId`/`roomId`; failed shards go to DLQ and reconciliation compares manifest to ready rooms. |
-| Round Provisioning Workers | Room Command API | Internal async-to-sync command wrapper: `CreateRoom` tournament-bound | Maps tournament assignments to Room Gameplay while preserving Room authority | Duplicate creates return existing room. Backpressure limits per Room partition. |
+| Tournament Orchestrator | Round Kickoff Planner / Provisioning Workers | Saga/process manager; async sharded work messages carrying `PlayersPartitionedIntoRooms` and `TournamentRoomProvisionRequested` | Handles 100k first-round room provisioning without one synchronous choke point | Workers publish idempotent `CreateRoom` command envelopes to `room.commands.v1` by `assignmentId`/`roomId`; Room Creation Command Consumer processes them inside Room Gameplay. Failed shards go to DLQ and reconciliation compares manifest to ready rooms. |
+| Round Provisioning Workers | Room Gameplay (via `room.commands.v1`) | Primary async command topic for tournament-bound room creation; `CreateRoom` envelopes with deterministic `roomId` and `assignmentId` | Maps tournament assignments to Room Gameplay while preserving Room authority; avoids synchronous REST fan-out | Duplicate creates are idempotent by `roomId`. Backpressure limits per Room partition. Internal REST endpoint (`POST /internal/rooms`) retained only for reconciliation/repair. |
 | Room Outbox Relay | Tournament Room Result Consumer | Pub/sub `room.outcomes.v1` carrying `RoomCompleted` for tournament rooms | Maps to `RecordTournamentRoomResult`; Tournament consumes authoritative match facts | At-least-once delivery. TournamentRound dedupes by `roomCompletionEventId`; missing results keep round open. |
 | Room Outbox Relay | Ranking Consumer | Pub/sub `EloUpdateRequested` for non-abandoned casual games | Maps to `ApplyCasualGameOutcomeToRatings`; preserves Elo scope | Ranking dedupes by `sourceGameOutcomeId`; abandoned/tournament outcomes are ignored/audited if received. |
 | Tournament Orchestrator | Ranking Consumer | Pub/sub `TournamentPlacementRatingUpdateRequested` | Maps to `ApplyTournamentPlacementOutcome`; separate from casual Elo | Dedupes by `sourceTournamentOutcomeId`; delayed rating does not block tournament completion. |

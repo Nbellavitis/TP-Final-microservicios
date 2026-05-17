@@ -68,6 +68,20 @@ Round end produces many `RoomCompleted` events close together. Room Gameplay wri
 
 Tournament result consumers partition by `tournamentId:roundId:roomId`. A missing result keeps only the round closure waiting; it does not reopen completed rooms.
 
+### Partition and shard assumptions
+
+The capacity numbers above translate to the following order-of-magnitude partitioning targets:
+
+| Resource | Assumption | Rationale |
+|---|---|---|
+| Room Engine partitions/shard groups | Hundreds to low thousands of room shards, each owning many `RoomSession` actors | At 100,000 concurrent rooms, 500 shards means approximately 200 rooms per shard; each shard processes commands for its rooms sequentially by `roomId`, but shards run in parallel |
+| Kafka partitions for `room.gameplay.public.v1` | Hundreds of partitions, keyed by `roomId` | At 150,000-700,000 events/sec, keeping per-partition throughput under a few thousand events/sec avoids consumer lag; `roomId` key preserves per-room ordering |
+| Kafka partitions for `room.outcomes.v1` | Tens to low hundreds, keyed by `roomId` | Lower volume than gameplay events; round-end spikes are absorbed by independent consumer groups |
+| Kafka partitions for `tournament.lifecycle.v1` | Tens, keyed by `tournamentId` | One active mega-tournament at a time; partitions mainly serve parallel consumer groups |
+| Kafka partitions for `room.commands.v1` | Tens to hundreds, keyed by `roomId` | Must absorb 1,700-10,000 CreateRoom commands/sec during tournament kickoff; partition count matches provisioning worker parallelism |
+| Realtime Gateway instances | Tens to hundreds of edge instances | At 1,000,000+ SSE connections, assuming 10,000-50,000 connections per gateway instance; regional edge pools for spectator scale |
+| Room Timer Scheduler partitions | Tens, partitioned by `roomId` hash or timer bucket | Each partition scans due deadlines independently; total scan interval must stay well under 1 second for challenge window precision |
+
 ### Spectator fan-out
 
 Spectators can outnumber players. Realtime Gateway and Spectator View therefore scale independently from Room Gameplay.
@@ -125,7 +139,7 @@ Every command/event envelope should carry:
 | Area | Metrics |
 |---|---|
 | Room Gameplay | command latency, accepted/rejected/stale/replay counts, sequence conflict rate, game log append latency, outbox lag, active room count |
-| Timers | due timers, late expiries, duplicate expiry suppression, reconnect vs expiry race outcomes |
+| Timers | due timers, late expiries, duplicate expiry suppression, reconnect vs expiry race outcomes, scheduler partition lag. Timer Scheduler workers are partitioned by `roomId` hash or timer bucket; each partition scans its deadline table independently. Expected tolerance: challenge expiry should be processed close to 5 seconds, but the Room Engine always verifies `expiresAt` against authoritative time before applying side effects, so a slightly late expiry command does not apply an incorrect penalty. A late-expiry metric tracks scheduler precision under load. |
 | Realtime | active SSE connections, per-room fan-out, dropped streams, session invalidation close latency, stream gap recovery |
 | Tournament | assignments planned, rooms ready, provisioning DLQ count, outstanding room results, round closure lag |
 | Ranking | rating request lag, dedupe count, failed/ignored abandoned outcomes |
@@ -229,3 +243,16 @@ The archive/course material highlights common patterns and anti-patterns. The ar
 - If spectator demand reaches the 10,000,000 connection worst case, capacity depends on regional realtime edges and quotas. This does not change gameplay correctness.
 - If product later makes jump-in/stacking mandatory, Room Gameplay can enforce them inside the same sequence model; capacity assumptions may need higher per-room command burst margins.
 - If course staff requires one physical pod per room, the same service contracts hold; the deployment scheduler simply maps each `RoomSession` actor to a dedicated Room Engine Pod instead of a shared shard pod.
+
+## 8. Adaptive throttling degradation priority
+
+When system pressure exceeds capacity (broker lag spikes, partition overload, or round kickoff surge), the architecture sheds load in the following priority order to preserve gameplay correctness:
+
+| Priority | Category | Policy |
+|---|---|---|
+| 1 (highest) | Accepted gameplay command writes and room timers | Never shed. These are the core consistency path. Backpressure stops upstream command acceptance rather than dropping committed writes. |
+| 2 | Tournament result intake and room provisioning | Preserve. Provisioning workers may be throttled or paced, but results are not dropped. DLQ absorbs poison messages. |
+| 3 | Authenticated player SSE streams | Preserve where possible. Under extreme load, player streams may experience increased latency but are not terminated. |
+| 4 (lowest) | Spectator streams, anonymous queries, analytics, bracket projections | Degrade first. Spectator subscriptions can be shed, rate-limited, or served stale snapshots. Analytics and leaderboard projections can lag. |
+
+This ensures gameplay remains correct and authoritative during surge pressure while allowing non-critical paths to degrade gracefully.
