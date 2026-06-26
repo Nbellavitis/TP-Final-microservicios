@@ -1,0 +1,14 @@
+{
+    "context":  "Compliance \u0026 Audit",
+    "displayName":  "Audit Export Worker",
+    "greeting":  "UnoArena Audit Export Worker placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "audit-export-worker",
+                                           "message":  "Audit Export Worker placeholder response"
+                                       }
+               },
+    "service":  "audit-export-worker"
+}

@@ -1,0 +1,44 @@
+leaderboard-projection-workers:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: leaderboard-projection-workers
+  rules:
+    - changes:
+        - services/leaderboard-projection-workers/**/*
+        - deploy/helm/leaderboard-projection-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/leaderboard-projection-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+leaderboard-projection-workers:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: leaderboard-projection-workers
+  needs:
+    - job: leaderboard-projection-workers:test
+  rules:
+    - changes:
+        - services/leaderboard-projection-workers/**/*
+        - deploy/helm/leaderboard-projection-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/leaderboard-projection-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+leaderboard-projection-workers:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: leaderboard-projection-workers
+  needs:
+    - job: leaderboard-projection-workers:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/leaderboard-projection-workers/**/*
+        - deploy/helm/leaderboard-projection-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/leaderboard-projection-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

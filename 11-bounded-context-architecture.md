@@ -383,7 +383,10 @@ Coherence rules:
 - duplicate `RoomCompleted` or advancement events are ignored by source event id
 - Tournament Orchestration publishes `expectedRoomCount` in `PlayersPartitionedIntoRooms` (on `tournament.round-assignments.v1`) and in `RoundCreated` (on `tournament.lifecycle.v1`) with the `roundVersion`; the Spectator Projection marks a round as fully projected only after it has received all expected room-result and advancement events for that round version
 - until projection is complete, public bracket views expose a coherent partial state with `projectionStatus=updating`
-- acceptable read-model staleness is seconds to low minutes during the largest completion spikes, but authoritative tournament closure remains in Tournament Orchestration
+- normal-case p99 public room delta lag target: <= 2 seconds after the committed room event reaches the broker
+- normal-case p99 bracket/standings lag target: <= 5 seconds after `PlayersAdvanced`, `PlayersEliminated`, or `RoundCompleted`
+- largest-spike bracket lag budget: up to 2 minutes while the view is explicitly marked `projectionStatus=updating`
+- authoritative tournament closure remains in Tournament Orchestration regardless of projection lag
 
 ### Dependencies
 

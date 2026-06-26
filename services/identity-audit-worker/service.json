@@ -1,0 +1,14 @@
+{
+    "context":  "Identity \u0026 Session",
+    "displayName":  "Identity Audit Worker",
+    "greeting":  "UnoArena Identity Audit Worker placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "identity-audit-worker",
+                                           "message":  "Identity Audit Worker placeholder response"
+                                       }
+               },
+    "service":  "identity-audit-worker"
+}

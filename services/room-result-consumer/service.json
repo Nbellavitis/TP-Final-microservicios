@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Room Result Consumer",
+    "greeting":  "UnoArena Room Result Consumer placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-result-consumer",
+                                           "message":  "Room Result Consumer placeholder response"
+                                       }
+               },
+    "service":  "room-result-consumer"
+}

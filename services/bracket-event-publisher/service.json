@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Bracket Event Publisher",
+    "greeting":  "UnoArena Bracket Event Publisher placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "bracket-event-publisher",
+                                           "message":  "Bracket Event Publisher placeholder response"
+                                       }
+               },
+    "service":  "bracket-event-publisher"
+}

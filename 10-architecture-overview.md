@@ -43,6 +43,9 @@ flowchart LR
         RL[Rate Limit / Quota Store]
     end
 
+    TBE["Trust boundary: public Internet -> Edge<br/>TLS termination, WAF, coarse rate limits"]
+    TBI["Trust boundary: Edge -> internal service network<br/>mTLS, signed principal, sessionVersion"]
+
     subgraph Identity["Identity & Session"]
         IAPI[Identity API]
         SStore[(Session Store)]
@@ -80,15 +83,18 @@ flowchart LR
 
     BUS[(Kafka / Event Log)]
 
-    P --> AG
-    S --> RGW
-    P --> RGW
-    O --> AG
+    P -. HTTPS commands + SSE player streams .-> TBE
+    S -. HTTPS/SSE subscriptions .-> TBE
+    O -. HTTPS operator access .-> TBE
+    TBE --> AG
+    TBE --> RGW
+    AG -. mTLS internal calls .-> TBI
+    RGW -. mTLS internal calls/control .-> TBI
 
     AG --> RL
-    AG --> IAPI
-    AG --> RAPI
-    AG --> TAPI
+    TBI --> IAPI
+    TBI --> RAPI
+    TBI --> TAPI
     RGW --> RL
 
     IAPI --> SStore
@@ -129,7 +135,7 @@ flowchart LR
 | Sequence-number enforcement | Room Command API validates request shape; Room Engine Pods enforce it inside the `RoomSession` command handler with optimistic append on `(roomId, sequence)` | If a pod restarts after receiving a command but before commit, the client retries with the same `actionId`; the recovered room snapshot/game log decides whether it was accepted or rejected. Stale or replayed commands emit `StaleCommandRejected` or `ReplayCommandIgnored`. |
 | Log-before-broadcast atomicity | Room Engine transaction appends authoritative events to the immutable game log and writes outbox rows in the same commit. Room Outbox Relay publishes only committed outbox rows | A crash after commit but before publish leaves outbox rows pending. A crash before commit publishes nothing. Therefore no client sees a state change that is absent from the game log. |
 | 5-second Uno challenge window | Room Engine persists `UnoChallengeWindow` with `expiresAt`; Room Timer Scheduler scans durable deadlines and sends `ExpireChallengeWindow` internally; Room Engine emits `UnoChallengeWindowClosed` with `closureReason=expired` or closes it earlier on `TurnBegan` | Scheduler workers are stateless and partitioned. On restart they reload due deadlines from the room timer table. Expiry command id is `roomId:gameId:challengeWindowId:expiresAt`, so duplicate expiries are ignored. |
-| 60-second reconnection window | Realtime Gateway detects player stream loss via Realtime Connection Registry (tracking `sessionId`, `playerId`, `roomId`, `connectionId`, `lastSeenAt`); calls `MarkPlayerDisconnected` when the last active connection for a `playerId:roomId` pair is gone or stale; Room Engine persists `DisconnectWindow` and `reconnectDeadline`; Room Timer Scheduler later sends `ExpireReconnectWindow` | If the gateway dies, a Session Continuity Worker reconciles by scanning stale Connection Registry records and issuing idempotent `MarkPlayerDisconnected` commands. The persisted deadline is recovered on scheduler restart. `ReconnectPlayer` and `ExpireReconnectWindow` race through the same room sequence, so exactly one of `PlayerReconnected` or `ReconnectWindowExpired`/`PlayerForfeited` wins. |
+| 60-second reconnection window | Realtime Gateway detects player stream loss via Realtime Connection Registry (tracking `sessionId`, `playerId`, `roomId`, `connectionId`, `lastSeenAt`); heartbeat writes run about every 5 seconds, a connection is stale after 10 seconds, and normal maximum detection latency is about 15 seconds. Room Engine persists `DisconnectWindow` with `disconnectedAt=lastSeenAt` and `reconnectDeadline=lastSeenAt+60s`; Room Timer Scheduler later sends `ExpireReconnectWindow` | If the gateway dies, a Session Continuity Worker reconciles by scanning stale Connection Registry records and issuing idempotent `MarkPlayerDisconnected` commands. The persisted deadline is recovered on scheduler restart. `ReconnectPlayer` and `ExpireReconnectWindow` race through the same room sequence, so exactly one of `PlayerReconnected` or `ReconnectWindowExpired`/`PlayerForfeited` wins. |
 | Single-active-session | Identity API updates `PlayerSession` and writes `PreviousSessionInvalidated`; Session Control Publisher fans out invalidation to Realtime Gateway instances and API auth caches | A new login is durable before the new token is returned. If a gateway misses the push, its short-lived auth cache also checks session version; stale SSE streams are closed when the control event is replayed or on next heartbeat/session-version check. |
 | Spectator projection privacy | Spectator Projection Ingestor consumes only public gameplay/tournament topics and validates schemas against an allow-list before writing Public View Store | If a malformed public event contains private fields, the ingestor rejects and quarantines it, emits `PublicProjectionSchemaViolationDetected`, and does not update the public view. |
 | Match series coordination | Room Engine owns `MatchState` inside `RoomSession`; `AdvanceMatchSeries` starts game 2/3 or emits `MatchCompleted`; Tournament Orchestration consumes only final `RoomCompleted` outcomes | Room restart reloads `MatchState` from the game log/snapshot. A duplicate `GameCompleted` cannot start a duplicate next game because `AdvanceMatchSeries` is idempotent by `gameId` and room sequence. |

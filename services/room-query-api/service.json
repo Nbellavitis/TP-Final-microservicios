@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Query API",
+    "greeting":  "UnoArena Room Query API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-query-api",
+                                           "message":  "Room Query API placeholder response"
+                                       }
+               },
+    "service":  "room-query-api"
+}

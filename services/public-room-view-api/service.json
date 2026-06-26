@@ -1,0 +1,14 @@
+{
+    "context":  "Spectator View",
+    "displayName":  "Public Room View API",
+    "greeting":  "UnoArena Public Room View API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "public-room-view-api",
+                                           "message":  "Public Room View API placeholder response"
+                                       }
+               },
+    "service":  "public-room-view-api"
+}

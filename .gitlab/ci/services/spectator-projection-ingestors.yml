@@ -1,0 +1,44 @@
+spectator-projection-ingestors:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: spectator-projection-ingestors
+  rules:
+    - changes:
+        - services/spectator-projection-ingestors/**/*
+        - deploy/helm/spectator-projection-ingestors/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-projection-ingestors.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+spectator-projection-ingestors:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: spectator-projection-ingestors
+  needs:
+    - job: spectator-projection-ingestors:test
+  rules:
+    - changes:
+        - services/spectator-projection-ingestors/**/*
+        - deploy/helm/spectator-projection-ingestors/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-projection-ingestors.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+spectator-projection-ingestors:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: spectator-projection-ingestors
+  needs:
+    - job: spectator-projection-ingestors:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/spectator-projection-ingestors/**/*
+        - deploy/helm/spectator-projection-ingestors/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-projection-ingestors.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

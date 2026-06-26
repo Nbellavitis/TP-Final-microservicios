@@ -1,0 +1,44 @@
+room-query-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-query-api
+  rules:
+    - changes:
+        - services/room-query-api/**/*
+        - deploy/helm/room-query-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-query-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-query-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-query-api
+  needs:
+    - job: room-query-api:test
+  rules:
+    - changes:
+        - services/room-query-api/**/*
+        - deploy/helm/room-query-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-query-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-query-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-query-api
+  needs:
+    - job: room-query-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-query-api/**/*
+        - deploy/helm/room-query-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-query-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

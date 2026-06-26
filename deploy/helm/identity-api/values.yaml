@@ -1,0 +1,22 @@
+serviceName: identity-api
+context: "Identity & Session"
+replicaCount: 1
+image:
+  repository: "registry.example.invalid/unoarena/identity-api"
+  tag: "dev"
+  digest: ""
+  pullPolicy: IfNotPresent
+containerPort: 8080
+service:
+  type: ClusterIP
+  port: 80
+env:
+  UNOARENA_ENVIRONMENT: "local"
+  PLACEHOLDER_KIND: "http"
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "250m"
+    memory: "256Mi"

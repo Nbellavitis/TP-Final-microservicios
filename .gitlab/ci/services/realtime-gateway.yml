@@ -1,0 +1,44 @@
+realtime-gateway:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: realtime-gateway
+  rules:
+    - changes:
+        - services/realtime-gateway/**/*
+        - deploy/helm/realtime-gateway/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/realtime-gateway.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+realtime-gateway:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: realtime-gateway
+  needs:
+    - job: realtime-gateway:test
+  rules:
+    - changes:
+        - services/realtime-gateway/**/*
+        - deploy/helm/realtime-gateway/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/realtime-gateway.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+realtime-gateway:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: realtime-gateway
+  needs:
+    - job: realtime-gateway:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/realtime-gateway/**/*
+        - deploy/helm/realtime-gateway/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/realtime-gateway.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

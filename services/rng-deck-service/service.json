@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "RNG / Deck Service",
+    "greeting":  "UnoArena RNG / Deck Service placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "rng-deck-service",
+                                           "message":  "RNG / Deck Service placeholder response"
+                                       }
+               },
+    "service":  "rng-deck-service"
+}

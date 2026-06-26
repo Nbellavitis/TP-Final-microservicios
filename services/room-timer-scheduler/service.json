@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Timer Scheduler",
+    "greeting":  "UnoArena Room Timer Scheduler placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-timer-scheduler",
+                                           "message":  "Room Timer Scheduler placeholder response"
+                                       }
+               },
+    "service":  "room-timer-scheduler"
+}

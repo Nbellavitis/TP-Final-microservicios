@@ -1,0 +1,5 @@
+apiVersion: v2
+name: unoarena-placeholder-lib
+description: Shared Kubernetes templates for UnoArena placeholder services.
+type: library
+version: 0.1.0

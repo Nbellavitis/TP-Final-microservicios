@@ -1,0 +1,44 @@
+round-kickoff-planner:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: round-kickoff-planner
+  rules:
+    - changes:
+        - services/round-kickoff-planner/**/*
+        - deploy/helm/round-kickoff-planner/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-kickoff-planner.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+round-kickoff-planner:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: round-kickoff-planner
+  needs:
+    - job: round-kickoff-planner:test
+  rules:
+    - changes:
+        - services/round-kickoff-planner/**/*
+        - deploy/helm/round-kickoff-planner/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-kickoff-planner.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+round-kickoff-planner:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: round-kickoff-planner
+  needs:
+    - job: round-kickoff-planner:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/round-kickoff-planner/**/*
+        - deploy/helm/round-kickoff-planner/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-kickoff-planner.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

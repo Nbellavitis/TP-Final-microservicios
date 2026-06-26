@@ -1,0 +1,44 @@
+bracket-event-publisher:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: bracket-event-publisher
+  rules:
+    - changes:
+        - services/bracket-event-publisher/**/*
+        - deploy/helm/bracket-event-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/bracket-event-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+bracket-event-publisher:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: bracket-event-publisher
+  needs:
+    - job: bracket-event-publisher:test
+  rules:
+    - changes:
+        - services/bracket-event-publisher/**/*
+        - deploy/helm/bracket-event-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/bracket-event-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+bracket-event-publisher:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: bracket-event-publisher
+  needs:
+    - job: bracket-event-publisher:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/bracket-event-publisher/**/*
+        - deploy/helm/bracket-event-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/bracket-event-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

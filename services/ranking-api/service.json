@@ -1,0 +1,14 @@
+{
+    "context":  "Ranking",
+    "displayName":  "Ranking API",
+    "greeting":  "UnoArena Ranking API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "ranking-api",
+                                           "message":  "Ranking API placeholder response"
+                                       }
+               },
+    "service":  "ranking-api"
+}

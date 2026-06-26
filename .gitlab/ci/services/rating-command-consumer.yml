@@ -1,0 +1,44 @@
+rating-command-consumer:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: rating-command-consumer
+  rules:
+    - changes:
+        - services/rating-command-consumer/**/*
+        - deploy/helm/rating-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rating-command-consumer:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: rating-command-consumer
+  needs:
+    - job: rating-command-consumer:test
+  rules:
+    - changes:
+        - services/rating-command-consumer/**/*
+        - deploy/helm/rating-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rating-command-consumer:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: rating-command-consumer
+  needs:
+    - job: rating-command-consumer:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/rating-command-consumer/**/*
+        - deploy/helm/rating-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

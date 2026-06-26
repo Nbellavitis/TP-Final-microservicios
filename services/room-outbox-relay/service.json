@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Outbox Relay",
+    "greeting":  "UnoArena Room Outbox Relay placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-outbox-relay",
+                                           "message":  "Room Outbox Relay placeholder response"
+                                       }
+               },
+    "service":  "room-outbox-relay"
+}

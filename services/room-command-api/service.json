@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Command API",
+    "greeting":  "UnoArena Room Command API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-command-api",
+                                           "message":  "Room Command API placeholder response"
+                                       }
+               },
+    "service":  "room-command-api"
+}

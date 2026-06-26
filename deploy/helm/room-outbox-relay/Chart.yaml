@@ -1,0 +1,10 @@
+apiVersion: v2
+name: room-outbox-relay
+description: UnoArena placeholder chart for Room Outbox Relay.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: unoarena-placeholder-lib
+    version: 0.1.0
+    repository: file://../unoarena-placeholder-lib

@@ -1,0 +1,14 @@
+{
+    "context":  "Spectator View",
+    "displayName":  "Spectator Stream Publisher",
+    "greeting":  "UnoArena Spectator Stream Publisher placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "spectator-stream-publisher",
+                                           "message":  "Spectator Stream Publisher placeholder response"
+                                       }
+               },
+    "service":  "spectator-stream-publisher"
+}

@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Creation Command Consumer",
+    "greeting":  "UnoArena Room Creation Command Consumer placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-creation-command-consumer",
+                                           "message":  "Room Creation Command Consumer placeholder response"
+                                       }
+               },
+    "service":  "room-creation-command-consumer"
+}

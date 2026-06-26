@@ -1,0 +1,14 @@
+{
+    "context":  "Ranking",
+    "displayName":  "Leaderboard Projection Workers",
+    "greeting":  "UnoArena Leaderboard Projection Workers placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "leaderboard-projection-workers",
+                                           "message":  "Leaderboard Projection Workers placeholder response"
+                                       }
+               },
+    "service":  "leaderboard-projection-workers"
+}

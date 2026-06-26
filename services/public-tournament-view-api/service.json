@@ -1,0 +1,14 @@
+{
+    "context":  "Spectator View",
+    "displayName":  "Public Tournament View API",
+    "greeting":  "UnoArena Public Tournament View API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "public-tournament-view-api",
+                                           "message":  "Public Tournament View API placeholder response"
+                                       }
+               },
+    "service":  "public-tournament-view-api"
+}

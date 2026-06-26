@@ -1,0 +1,44 @@
+tournament-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: tournament-api
+  rules:
+    - changes:
+        - services/tournament-api/**/*
+        - deploy/helm/tournament-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+tournament-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: tournament-api
+  needs:
+    - job: tournament-api:test
+  rules:
+    - changes:
+        - services/tournament-api/**/*
+        - deploy/helm/tournament-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+tournament-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: tournament-api
+  needs:
+    - job: tournament-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/tournament-api/**/*
+        - deploy/helm/tournament-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

@@ -1,0 +1,14 @@
+{
+    "context":  "Identity \u0026 Session",
+    "displayName":  "Session Control Publisher",
+    "greeting":  "UnoArena Session Control Publisher placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "session-control-publisher",
+                                           "message":  "Session Control Publisher placeholder response"
+                                       }
+               },
+    "service":  "session-control-publisher"
+}

@@ -1,0 +1,44 @@
+identity-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: identity-api
+  rules:
+    - changes:
+        - services/identity-api/**/*
+        - deploy/helm/identity-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+identity-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: identity-api
+  needs:
+    - job: identity-api:test
+  rules:
+    - changes:
+        - services/identity-api/**/*
+        - deploy/helm/identity-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+identity-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: identity-api
+  needs:
+    - job: identity-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/identity-api/**/*
+        - deploy/helm/identity-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

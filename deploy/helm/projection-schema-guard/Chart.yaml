@@ -1,0 +1,10 @@
+apiVersion: v2
+name: projection-schema-guard
+description: UnoArena placeholder chart for Projection Schema Guard.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: unoarena-placeholder-lib
+    version: 0.1.0
+    repository: file://../unoarena-placeholder-lib

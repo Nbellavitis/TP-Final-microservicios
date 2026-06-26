@@ -1,0 +1,14 @@
+{
+    "context":  "Room Gameplay",
+    "displayName":  "Room Log Replay API",
+    "greeting":  "UnoArena Room Log Replay API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "room-log-replay-api",
+                                           "message":  "Room Log Replay API placeholder response"
+                                       }
+               },
+    "service":  "room-log-replay-api"
+}

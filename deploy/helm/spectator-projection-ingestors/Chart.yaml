@@ -1,0 +1,10 @@
+apiVersion: v2
+name: spectator-projection-ingestors
+description: UnoArena placeholder chart for Spectator Projection Ingestors.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: unoarena-placeholder-lib
+    version: 0.1.0
+    repository: file://../unoarena-placeholder-lib

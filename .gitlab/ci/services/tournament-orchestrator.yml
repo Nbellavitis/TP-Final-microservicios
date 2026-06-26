@@ -1,0 +1,44 @@
+tournament-orchestrator:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: tournament-orchestrator
+  rules:
+    - changes:
+        - services/tournament-orchestrator/**/*
+        - deploy/helm/tournament-orchestrator/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-orchestrator.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+tournament-orchestrator:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: tournament-orchestrator
+  needs:
+    - job: tournament-orchestrator:test
+  rules:
+    - changes:
+        - services/tournament-orchestrator/**/*
+        - deploy/helm/tournament-orchestrator/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-orchestrator.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+tournament-orchestrator:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: tournament-orchestrator
+  needs:
+    - job: tournament-orchestrator:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/tournament-orchestrator/**/*
+        - deploy/helm/tournament-orchestrator/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/tournament-orchestrator.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

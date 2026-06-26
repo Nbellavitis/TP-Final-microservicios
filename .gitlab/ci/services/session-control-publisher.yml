@@ -1,0 +1,44 @@
+session-control-publisher:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: session-control-publisher
+  rules:
+    - changes:
+        - services/session-control-publisher/**/*
+        - deploy/helm/session-control-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/session-control-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+session-control-publisher:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: session-control-publisher
+  needs:
+    - job: session-control-publisher:test
+  rules:
+    - changes:
+        - services/session-control-publisher/**/*
+        - deploy/helm/session-control-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/session-control-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+session-control-publisher:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: session-control-publisher
+  needs:
+    - job: session-control-publisher:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/session-control-publisher/**/*
+        - deploy/helm/session-control-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/session-control-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

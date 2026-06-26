@@ -1,0 +1,44 @@
+dispute-replay-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: dispute-replay-api
+  rules:
+    - changes:
+        - services/dispute-replay-api/**/*
+        - deploy/helm/dispute-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/dispute-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+dispute-replay-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: dispute-replay-api
+  needs:
+    - job: dispute-replay-api:test
+  rules:
+    - changes:
+        - services/dispute-replay-api/**/*
+        - deploy/helm/dispute-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/dispute-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+dispute-replay-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: dispute-replay-api
+  needs:
+    - job: dispute-replay-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/dispute-replay-api/**/*
+        - deploy/helm/dispute-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/dispute-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

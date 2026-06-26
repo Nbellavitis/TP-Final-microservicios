@@ -1,0 +1,44 @@
+room-timer-scheduler:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-timer-scheduler
+  rules:
+    - changes:
+        - services/room-timer-scheduler/**/*
+        - deploy/helm/room-timer-scheduler/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-timer-scheduler.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-timer-scheduler:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-timer-scheduler
+  needs:
+    - job: room-timer-scheduler:test
+  rules:
+    - changes:
+        - services/room-timer-scheduler/**/*
+        - deploy/helm/room-timer-scheduler/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-timer-scheduler.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-timer-scheduler:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-timer-scheduler
+  needs:
+    - job: room-timer-scheduler:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-timer-scheduler/**/*
+        - deploy/helm/room-timer-scheduler/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-timer-scheduler.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

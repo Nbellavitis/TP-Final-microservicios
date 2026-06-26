@@ -1,0 +1,140 @@
+api-gateway-bff:contract:
+  extends: .contract_json_check
+  variables:
+    CONTRACT_FILE: contracts/api-gateway-bff/openapi.json
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  needs:
+    - job: api-gateway-bff:test
+    - job: api-gateway-bff:contract
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  needs:
+    - job: api-gateway-bff:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:deploy-staging:
+  extends: .service_deploy_staging
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  needs:
+    - job: api-gateway-bff:deliver
+      artifacts: true
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:integration-staging:
+  extends: .service_integration_staging
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+    UNOARENA_API_URL: ${STAGING_BASE_URL}
+  needs:
+    - job: api-gateway-bff:deploy-staging
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+    - when: never
+api-gateway-bff:deliver-production:
+  extends: .service_deliver_production
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  needs:
+    - job: api-gateway-bff:deliver
+      artifacts: true
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+      when: manual
+    - when: never
+api-gateway-bff:deploy-production:
+  extends: .service_deploy_production
+  variables:
+    SERVICE_SLUG: api-gateway-bff
+  needs:
+    - job: api-gateway-bff:deliver-production
+      artifacts: true
+  rules:
+    - changes:
+        - services/api-gateway-bff/**/*
+        - deploy/helm/api-gateway-bff/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/api-gateway-bff.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+        - contracts/api-gateway-bff/**/*
+        - devops-checkpoint/smoke/**/*
+      when: manual
+    - when: never

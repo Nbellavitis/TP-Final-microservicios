@@ -1,0 +1,44 @@
+room-result-consumer:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-result-consumer
+  rules:
+    - changes:
+        - services/room-result-consumer/**/*
+        - deploy/helm/room-result-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-result-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-result-consumer:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-result-consumer
+  needs:
+    - job: room-result-consumer:test
+  rules:
+    - changes:
+        - services/room-result-consumer/**/*
+        - deploy/helm/room-result-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-result-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-result-consumer:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-result-consumer
+  needs:
+    - job: room-result-consumer:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-result-consumer/**/*
+        - deploy/helm/room-result-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-result-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

@@ -1,0 +1,44 @@
+public-tournament-view-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: public-tournament-view-api
+  rules:
+    - changes:
+        - services/public-tournament-view-api/**/*
+        - deploy/helm/public-tournament-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-tournament-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+public-tournament-view-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: public-tournament-view-api
+  needs:
+    - job: public-tournament-view-api:test
+  rules:
+    - changes:
+        - services/public-tournament-view-api/**/*
+        - deploy/helm/public-tournament-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-tournament-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+public-tournament-view-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: public-tournament-view-api
+  needs:
+    - job: public-tournament-view-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/public-tournament-view-api/**/*
+        - deploy/helm/public-tournament-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-tournament-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

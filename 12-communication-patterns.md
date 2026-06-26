@@ -75,11 +75,13 @@ SSE is server-to-client, so detecting a client disconnect requires explicit arch
 
 Disconnect detection mechanism:
 
-1. The Realtime Gateway periodically writes SSE heartbeat comments (`:heartbeat`) to each player stream. A failed write (TCP close, broken pipe) marks the connection as dead.
+1. The Realtime Gateway periodically writes SSE heartbeat comments (`:heartbeat`) to each player stream, for example every 5 seconds. A failed write (TCP close, broken pipe) marks the connection as dead.
 2. Optionally, active players send a lightweight REST heartbeat (`POST /v1/rooms/{roomId}/heartbeat`) that updates `lastSeenAt`, but all gameplay commands remain REST-based.
-3. When the last active player gameplay connection for a given `playerId:roomId` pair is gone or stale past a configurable grace threshold, the gateway calls `MarkPlayerDisconnected` on Room Command API.
-4. A **Session Continuity Worker** runs independently and reconciles gateway crashes by scanning the Connection Registry for stale records (where `lastSeenAt` exceeds the grace threshold and no active connection exists). It issues idempotent `MarkPlayerDisconnected` commands for any orphaned entries.
+3. When the last active player gameplay connection for a given `playerId:roomId` pair is gone or stale for 10 seconds past `lastSeenAt`, the gateway calls `MarkPlayerDisconnected` on Room Command API.
+4. A **Session Continuity Worker** runs independently every 5 seconds and reconciles gateway crashes by scanning the Connection Registry for stale records (where `lastSeenAt` exceeds the 10-second threshold and no active connection exists). It issues idempotent `MarkPlayerDisconnected` commands for any orphaned entries.
 5. Multiple tabs or connections for the same `playerId:roomId` are tracked as separate `connectionId` entries. `MarkPlayerDisconnected` fires only when the last one is lost.
+
+Normal maximum detection latency is therefore about 15 seconds after the last successful heartbeat/write. To preserve the domain rule, Room Gameplay records `disconnectedAt = lastSeenAt` and computes `reconnectDeadline = lastSeenAt + 60 seconds`, not "command arrival time + 60 seconds." If the detection command arrives late and the deadline is already past, the same room sequence can immediately emit `ReconnectWindowExpired` and the relevant forfeit events idempotently.
 
 This makes the 60-second reconnect window operationally credible across gateway restarts, network partitions, and half-open TCP sockets.
 
@@ -151,6 +153,19 @@ Async contracts should be documented with AsyncAPI-style channel definitions or 
 - backward-compatibility rules
 
 Schema evolution is additive by default. Consumers must tolerate unknown fields and must not depend on private producer storage schemas.
+
+### Schema registry operating model
+
+Each producing bounded context owns the schemas for the events it publishes. For example, Room Gameplay owns `room.*` schemas, Tournament Orchestration owns `tournament.*`, and Ranking owns `ranking.*`.
+
+Operationally:
+
+- every schema change is submitted with the service change that produces it
+- CI runs an AsyncAPI/schema-registry compatibility check against the latest registered schema before merge
+- compatible additive changes may stay on the same `.v1` topic/event type
+- breaking changes require a new event type or topic version, such as `RoomCompleted.v2` or `room.outcomes.v2`, plus a migration/dual-publish window
+- consumer contract tests pin the minimum schema version they understand
+- the architecture/platform review role owns registry policy, while producer teams own the actual domain payloads
 
 ## 4. Integration table
 

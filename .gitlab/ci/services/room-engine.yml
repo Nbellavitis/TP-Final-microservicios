@@ -1,0 +1,44 @@
+room-engine:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-engine
+  rules:
+    - changes:
+        - services/room-engine/**/*
+        - deploy/helm/room-engine/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-engine.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-engine:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-engine
+  needs:
+    - job: room-engine:test
+  rules:
+    - changes:
+        - services/room-engine/**/*
+        - deploy/helm/room-engine/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-engine.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-engine:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-engine
+  needs:
+    - job: room-engine:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-engine/**/*
+        - deploy/helm/room-engine/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-engine.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

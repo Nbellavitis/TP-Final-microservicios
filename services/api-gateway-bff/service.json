@@ -1,0 +1,22 @@
+{
+    "context":  "Edge",
+    "displayName":  "API Gateway / BFF",
+    "greeting":  "UnoArena API Gateway / BFF placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/rooms":  {
+                                     "result":  "ok",
+                                     "service":  "api-gateway-bff",
+                                     "rooms":  [
+
+                                               ]
+                                 },
+                   "/v1/whoami":  {
+                                      "result":  "ok",
+                                      "service":  "api-gateway-bff",
+                                      "playerId":  "placeholder-player",
+                                      "sessionVersion":  1
+                                  }
+               },
+    "service":  "api-gateway-bff"
+}

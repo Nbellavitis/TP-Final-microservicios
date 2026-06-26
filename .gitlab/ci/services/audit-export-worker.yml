@@ -1,0 +1,44 @@
+audit-export-worker:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: audit-export-worker
+  rules:
+    - changes:
+        - services/audit-export-worker/**/*
+        - deploy/helm/audit-export-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-export-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+audit-export-worker:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: audit-export-worker
+  needs:
+    - job: audit-export-worker:test
+  rules:
+    - changes:
+        - services/audit-export-worker/**/*
+        - deploy/helm/audit-export-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-export-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+audit-export-worker:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: audit-export-worker
+  needs:
+    - job: audit-export-worker:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/audit-export-worker/**/*
+        - deploy/helm/audit-export-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-export-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

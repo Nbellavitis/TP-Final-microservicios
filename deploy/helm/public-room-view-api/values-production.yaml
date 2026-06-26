@@ -1,0 +1,22 @@
+serviceName: public-room-view-api
+context: "Spectator View"
+replicaCount: 2
+image:
+  repository: ""
+  tag: ""
+  digest: ""
+  pullPolicy: IfNotPresent
+containerPort: 8080
+service:
+  type: ClusterIP
+  port: 80
+env:
+  UNOARENA_ENVIRONMENT: "production"
+  PLACEHOLDER_KIND: "http"
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "250m"
+    memory: "256Mi"

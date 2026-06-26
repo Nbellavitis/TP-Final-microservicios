@@ -1,0 +1,118 @@
+.service_test:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - python -m py_compile devops-checkpoint/runtime/app.py
+    - python "services/${SERVICE_SLUG}/test_placeholder.py"
+
+.contract_json_check:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - python -m json.tool "${CONTRACT_FILE}" > /tmp/contract.json
+
+.service_build:
+  stage: build
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - export IMAGE_NAME="${CI_REGISTRY_IMAGE}/${SERVICE_SLUG}:${CI_COMMIT_SHA}"
+    - docker build --pull -f "services/${SERVICE_SLUG}/Dockerfile" -t "${IMAGE_NAME}" .
+    - docker save "${IMAGE_NAME}" -o image.tar
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - image.tar
+
+.service_deliver:
+  stage: deliver
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--tls=false"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    HELM_VERSION: "3.14.4"
+  script:
+    - apk add --no-cache curl tar gzip
+    - curl -fsSL "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" -o /tmp/helm.tgz
+    - tar -xzf /tmp/helm.tgz -C /tmp
+    - export HELM=/tmp/linux-amd64/helm
+    - export IMAGE_NAME="${CI_REGISTRY_IMAGE}/${SERVICE_SLUG}:${CI_COMMIT_SHA}"
+    - docker load -i image.tar
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login "${CI_REGISTRY}" -u "${CI_REGISTRY_USER}" --password-stdin
+    - docker push "${IMAGE_NAME}"
+    - docker pull "${IMAGE_NAME}"
+    - export IMAGE_REF="$(docker inspect --format='{{index .RepoDigests 0}}' "${IMAGE_NAME}")"
+    - test -n "${IMAGE_REF}"
+    - export IMAGE_DIGEST="${IMAGE_REF#*@}"
+    - mkdir -p chart-packages
+    - "${HELM}" dependency update "deploy/helm/${SERVICE_SLUG}"
+    - "${HELM}" package "deploy/helm/${SERVICE_SLUG}" --version "0.1.${CI_PIPELINE_IID}" --app-version "${CI_COMMIT_SHA}" --destination chart-packages
+    - export CHART_PACKAGE="$(ls chart-packages/${SERVICE_SLUG}-*.tgz | head -n 1)"
+    - curl --request POST --user "gitlab-ci-token:${CI_JOB_TOKEN}" --form "chart=@${CHART_PACKAGE}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/stable/charts"
+    - printf "IMAGE_DIGEST=%s\nIMAGE_REPOSITORY=%s\nIMAGE_TAG=%s\nCHART_PACKAGE=%s\n" "${IMAGE_DIGEST}" "${CI_REGISTRY_IMAGE}/${SERVICE_SLUG}" "${CI_COMMIT_SHA}" "${CHART_PACKAGE}" > deliver.env
+  artifacts:
+    expire_in: 7 days
+    reports:
+      dotenv: deliver.env
+    paths:
+      - chart-packages/
+
+.service_deploy_staging:
+  stage: deploy-staging
+  image: dtzar/helm-kubectl:3.14.4
+  variables:
+    KUBE_NAMESPACE: unoarena-staging
+  script:
+    - test -n "${IMAGE_DIGEST}"
+    - helm dependency update "deploy/helm/${SERVICE_SLUG}"
+    - helm upgrade --install "${SERVICE_SLUG}" "deploy/helm/${SERVICE_SLUG}" --namespace "${KUBE_NAMESPACE}" --create-namespace -f "deploy/helm/${SERVICE_SLUG}/values-staging.yaml" --set image.repository="${IMAGE_REPOSITORY}" --set image.digest="${IMAGE_DIGEST}" --set image.tag="${IMAGE_TAG}"
+    - kubectl rollout status "deployment/${SERVICE_SLUG}" -n "${KUBE_NAMESPACE}" --timeout=180s
+  environment:
+    name: staging/${SERVICE_SLUG}
+    url: ${STAGING_BASE_URL}
+
+.service_integration_staging:
+  stage: integration-staging
+  image: python:3.12-slim
+  variables:
+    UNOARENA_CLI: client-checkpoint/unoarena
+    UNOARENA_CLI_SMOKE_ARGS: "whoami"
+    UNOARENA_SMOKE_EXPECT: "placeholder-player,api-gateway-bff"
+  script:
+    - python devops-checkpoint/smoke/api_gateway_bff_cli_smoke.py
+
+.service_deliver_production:
+  stage: deliver-production
+  image: alpine:3.20
+  script:
+    - test -n "${IMAGE_DIGEST}"
+    - printf "PROMOTED_IMAGE_REPOSITORY=%s\nPROMOTED_IMAGE_DIGEST=%s\nPROMOTED_IMAGE_TAG=%s\n" "${IMAGE_REPOSITORY}" "${IMAGE_DIGEST}" "${IMAGE_TAG}" > promote.env
+  artifacts:
+    reports:
+      dotenv: promote.env
+  when: manual
+  allow_failure: false
+
+.service_deploy_production:
+  stage: deploy-production
+  image: dtzar/helm-kubectl:3.14.4
+  variables:
+    KUBE_NAMESPACE: unoarena-production
+  script:
+    - test -n "${PROMOTED_IMAGE_DIGEST}"
+    - helm dependency update "deploy/helm/${SERVICE_SLUG}"
+    - helm upgrade --install "${SERVICE_SLUG}" "deploy/helm/${SERVICE_SLUG}" --namespace "${KUBE_NAMESPACE}" --create-namespace -f "deploy/helm/${SERVICE_SLUG}/values-production.yaml" --set image.repository="${PROMOTED_IMAGE_REPOSITORY}" --set image.digest="${PROMOTED_IMAGE_DIGEST}" --set image.tag="${PROMOTED_IMAGE_TAG}"
+    - kubectl rollout status "deployment/${SERVICE_SLUG}" -n "${KUBE_NAMESPACE}" --timeout=300s
+  environment:
+    name: production/${SERVICE_SLUG}
+    url: ${PRODUCTION_BASE_URL}
+  when: manual
+  allow_failure: false

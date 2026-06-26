@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Tournament API",
+    "greeting":  "UnoArena Tournament API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "tournament-api",
+                                           "message":  "Tournament API placeholder response"
+                                       }
+               },
+    "service":  "tournament-api"
+}

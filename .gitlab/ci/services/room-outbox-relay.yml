@@ -1,0 +1,44 @@
+room-outbox-relay:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-outbox-relay
+  rules:
+    - changes:
+        - services/room-outbox-relay/**/*
+        - deploy/helm/room-outbox-relay/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-outbox-relay.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-outbox-relay:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-outbox-relay
+  needs:
+    - job: room-outbox-relay:test
+  rules:
+    - changes:
+        - services/room-outbox-relay/**/*
+        - deploy/helm/room-outbox-relay/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-outbox-relay.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-outbox-relay:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-outbox-relay
+  needs:
+    - job: room-outbox-relay:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-outbox-relay/**/*
+        - deploy/helm/room-outbox-relay/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-outbox-relay.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

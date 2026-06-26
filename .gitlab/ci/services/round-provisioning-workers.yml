@@ -1,0 +1,44 @@
+round-provisioning-workers:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: round-provisioning-workers
+  rules:
+    - changes:
+        - services/round-provisioning-workers/**/*
+        - deploy/helm/round-provisioning-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-provisioning-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+round-provisioning-workers:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: round-provisioning-workers
+  needs:
+    - job: round-provisioning-workers:test
+  rules:
+    - changes:
+        - services/round-provisioning-workers/**/*
+        - deploy/helm/round-provisioning-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-provisioning-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+round-provisioning-workers:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: round-provisioning-workers
+  needs:
+    - job: round-provisioning-workers:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/round-provisioning-workers/**/*
+        - deploy/helm/round-provisioning-workers/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/round-provisioning-workers.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

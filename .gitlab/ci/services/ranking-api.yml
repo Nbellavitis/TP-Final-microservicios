@@ -1,0 +1,44 @@
+ranking-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: ranking-api
+  rules:
+    - changes:
+        - services/ranking-api/**/*
+        - deploy/helm/ranking-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/ranking-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+ranking-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: ranking-api
+  needs:
+    - job: ranking-api:test
+  rules:
+    - changes:
+        - services/ranking-api/**/*
+        - deploy/helm/ranking-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/ranking-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+ranking-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: ranking-api
+  needs:
+    - job: ranking-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/ranking-api/**/*
+        - deploy/helm/ranking-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/ranking-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

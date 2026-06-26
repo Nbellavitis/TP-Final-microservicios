@@ -1,0 +1,44 @@
+room-command-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-command-api
+  rules:
+    - changes:
+        - services/room-command-api/**/*
+        - deploy/helm/room-command-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-command-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-command-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-command-api
+  needs:
+    - job: room-command-api:test
+  rules:
+    - changes:
+        - services/room-command-api/**/*
+        - deploy/helm/room-command-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-command-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-command-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-command-api
+  needs:
+    - job: room-command-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-command-api/**/*
+        - deploy/helm/room-command-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-command-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

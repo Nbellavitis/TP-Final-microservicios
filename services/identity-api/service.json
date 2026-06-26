@@ -1,0 +1,14 @@
+{
+    "context":  "Identity \u0026 Session",
+    "displayName":  "Identity API",
+    "greeting":  "UnoArena Identity API placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "identity-api",
+                                           "message":  "Identity API placeholder response"
+                                       }
+               },
+    "service":  "identity-api"
+}

@@ -1,0 +1,14 @@
+{
+    "context":  "Spectator View",
+    "displayName":  "Projection Schema Guard",
+    "greeting":  "UnoArena Projection Schema Guard placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "projection-schema-guard",
+                                           "message":  "Projection Schema Guard placeholder response"
+                                       }
+               },
+    "service":  "projection-schema-guard"
+}

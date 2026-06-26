@@ -28,6 +28,28 @@ The assignment calls out tournaments up to 1,000,000 players and a first-round s
 
 These are sizing targets for architectural decomposition, not exact benchmark claims.
 
+### Storage growth estimates
+
+These estimates are intentionally order-of-magnitude. They show that the architecture has a storage story for the same peak rates used above.
+
+Assumptions:
+
+- average committed gameplay event after envelope/index overhead: 1-2 KB
+- public projection delta: 0.5-1 KB
+- audit copy: 0.5-2 KB depending on whether it stores only hashes/reason codes or full high-stakes replay material
+- peak gameplay event rate: 150,000-700,000 events/sec
+- a mega-round peak is bursty; a 2-hour intense round is a more realistic stress window than 24 hours sustained at absolute peak
+
+| Store / data class | Back-of-envelope growth | Architectural implication |
+|---|---|---|
+| Room Gameplay immutable log | 150k-700k events/sec * 1-2 KB = about 150 MB/sec to 1.4 GB/sec. If sustained for 24h, roughly 13-121 TB/day. A 2-hour mega-round is roughly 1-10 TB. | Hot event-log storage must be partitioned by `roomId` and tiered quickly after room completion. Cold replay goes to compressed object storage; active rooms stay in hot partitions. |
+| Room outbox | Same event count but transient rows, roughly 0.5-1 KB each. At peak, 75-700 MB/sec if relay is delayed. | Outbox retention must be short, normally 24-72h after publish. It is not the long-term event store. Relay lag dashboards are capacity-critical. |
+| Public room/spectator view store | 100,000 active room snapshots * 2-10 KB = about 200 MB-1 GB for room snapshots. Public deltas add a few GB to tens of GB during a mega-round, depending on retention window. | Public projections are cheap compared with authoritative logs; they can be rebuilt from public events and expired after room/tournament visibility windows. |
+| Realtime connection registry | 1M-10M SSE connections * 0.5-2 KB metadata = about 0.5-20 GB distributed across gateway/registry shards. | Registry must be sharded and TTL-based; it is operational state, not historical data. |
+| Tournament assignment manifests | 1,000,000 players plus 100,000 room assignments at tens to hundreds of bytes each = hundreds of MB to low GB per mega-tournament. | Store manifests in partitioned relational/object storage; archive after tournament completion and dispute window. |
+| Ranking history | One record per rated player outcome. A 1M-player casual spike at 0.5-1 KB per player outcome is about 0.5-1 GB per full-room-result wave. | Ranking ledger growth is manageable but append-only; leaderboards are projections over the ledger. |
+| Audit WORM | Normal mode stores sensitive subset and hashes: often 10-40% of gameplay log volume. High-stakes mode can approach full gameplay-log volume, about 1-10 TB for a 2-hour mega-round. | Audit retention must use object/WORM storage and hash-chain indexes; gameplay commands must not synchronously block on remote audit writes. |
+
 ### Component scaling behavior
 
 | Component | Scale model |
@@ -102,6 +124,7 @@ Mitigations:
 | Stale command rejection | immediate conflict response | `expectedSequence` checked in Room Engine; `409` semantics and `StaleCommandRejected` |
 | Realtime player updates | near realtime after durable commit | outbox relay to SSE gateway; per-room ordering by `roomSequence` |
 | Spectator updates | scalable, privacy-safe | public CQRS projection and independent SSE fan-out |
+| Bracket/standings projection | normal p99 <= 5 seconds after tournament progression event; <= 2 minutes during mega-round completion spike while marked `updating` | partitioned projection workers, expected-room-count tracking, explicit projection status |
 | Tournament kickoff | high throughput, controlled surge | sharded assignment manifest, provisioning workers, deterministic room ids |
 | Tournament advancement | correctness over speed | idempotent `RecordTournamentRoomResult`; no speculative advancement |
 | Ranking updates | eventually consistent, exactly-once effect | source outcome dedupe, rating history ledger |
@@ -254,5 +277,15 @@ When system pressure exceeds capacity (broker lag spikes, partition overload, or
 | 2 | Tournament result intake and room provisioning | Preserve. Provisioning workers may be throttled or paced, but results are not dropped. DLQ absorbs poison messages. |
 | 3 | Authenticated player SSE streams | Preserve where possible. Under extreme load, player streams may experience increased latency but are not terminated. |
 | 4 (lowest) | Spectator streams, anonymous queries, analytics, bracket projections | Degrade first. Spectator subscriptions can be shed, rate-limited, or served stale snapshots. Analytics and leaderboard projections can lag. |
+
+Concrete trigger examples:
+
+| Signal | Threshold | Action |
+|---|---|---|
+| Realtime Gateway CPU or memory | > 80% for 5 minutes, or file descriptors > 85% capacity | Reject new anonymous spectator streams with `429` and `Retry-After`; preserve player streams |
+| Public event/projection lag | `room.gameplay.public.v1` or `spectator.public-updates.v1` consumer lag p95 > 10 seconds | Switch spectators to snapshot refresh mode and reduce delta fan-out frequency |
+| Broker lag on gameplay command/outcome topics | p95 lag > 2 seconds for `room.commands.v1` or `room.outcomes.v1` | Slow Round Provisioning Workers; do not drop committed outcomes |
+| Room command p99 latency | > 250 ms for 5 minutes | Freeze new spectator subscriptions and non-critical analytics fan-out before throttling gameplay command acceptance |
+| Timer scheduler late-expiry metric | p95 challenge expiry lateness > 500 ms | Prioritize timer partitions over projection workers and pause optional bracket refreshes |
 
 This ensures gameplay remains correct and authoritative during surge pressure while allowing non-critical paths to degrade gracefully.

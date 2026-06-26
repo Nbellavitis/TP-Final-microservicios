@@ -1,0 +1,14 @@
+{
+    "context":  "Edge",
+    "displayName":  "Realtime Gateway - SSE",
+    "greeting":  "UnoArena Realtime Gateway - SSE placeholder",
+    "kind":  "http",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "realtime-gateway",
+                                           "message":  "Realtime Gateway - SSE placeholder response"
+                                       }
+               },
+    "service":  "realtime-gateway"
+}

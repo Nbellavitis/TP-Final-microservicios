@@ -1,0 +1,44 @@
+room-log-replay-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-log-replay-api
+  rules:
+    - changes:
+        - services/room-log-replay-api/**/*
+        - deploy/helm/room-log-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-log-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-log-replay-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-log-replay-api
+  needs:
+    - job: room-log-replay-api:test
+  rules:
+    - changes:
+        - services/room-log-replay-api/**/*
+        - deploy/helm/room-log-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-log-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-log-replay-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-log-replay-api
+  needs:
+    - job: room-log-replay-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-log-replay-api/**/*
+        - deploy/helm/room-log-replay-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-log-replay-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

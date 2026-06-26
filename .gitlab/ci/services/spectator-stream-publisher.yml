@@ -1,0 +1,44 @@
+spectator-stream-publisher:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: spectator-stream-publisher
+  rules:
+    - changes:
+        - services/spectator-stream-publisher/**/*
+        - deploy/helm/spectator-stream-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-stream-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+spectator-stream-publisher:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: spectator-stream-publisher
+  needs:
+    - job: spectator-stream-publisher:test
+  rules:
+    - changes:
+        - services/spectator-stream-publisher/**/*
+        - deploy/helm/spectator-stream-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-stream-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+spectator-stream-publisher:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: spectator-stream-publisher
+  needs:
+    - job: spectator-stream-publisher:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/spectator-stream-publisher/**/*
+        - deploy/helm/spectator-stream-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/spectator-stream-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

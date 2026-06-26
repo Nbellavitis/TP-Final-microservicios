@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Round Kickoff Planner",
+    "greeting":  "UnoArena Round Kickoff Planner placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "round-kickoff-planner",
+                                           "message":  "Round Kickoff Planner placeholder response"
+                                       }
+               },
+    "service":  "round-kickoff-planner"
+}

@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Tournament Orchestrator",
+    "greeting":  "UnoArena Tournament Orchestrator placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "tournament-orchestrator",
+                                           "message":  "Tournament Orchestrator placeholder response"
+                                       }
+               },
+    "service":  "tournament-orchestrator"
+}

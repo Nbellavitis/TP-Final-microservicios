@@ -1,0 +1,44 @@
+public-room-view-api:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: public-room-view-api
+  rules:
+    - changes:
+        - services/public-room-view-api/**/*
+        - deploy/helm/public-room-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-room-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+public-room-view-api:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: public-room-view-api
+  needs:
+    - job: public-room-view-api:test
+  rules:
+    - changes:
+        - services/public-room-view-api/**/*
+        - deploy/helm/public-room-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-room-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+public-room-view-api:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: public-room-view-api
+  needs:
+    - job: public-room-view-api:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/public-room-view-api/**/*
+        - deploy/helm/public-room-view-api/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/public-room-view-api.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

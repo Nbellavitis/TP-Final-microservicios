@@ -1,0 +1,38 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "UnoArena API Gateway Placeholder Contract",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Gateway placeholder is healthy"
+          }
+        }
+      }
+    },
+    "/v1/rooms": {
+      "get": {
+        "summary": "Client CLI room list smoke endpoint",
+        "responses": {
+          "200": {
+            "description": "Canned room list response"
+          }
+        }
+      }
+    },
+    "/v1/whoami": {
+      "get": {
+        "summary": "Client CLI identity smoke endpoint",
+        "responses": {
+          "200": {
+            "description": "Canned identity response"
+          }
+        }
+      }
+    }
+  }
+}

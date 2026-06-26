@@ -1,0 +1,44 @@
+audit-ingestor:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: audit-ingestor
+  rules:
+    - changes:
+        - services/audit-ingestor/**/*
+        - deploy/helm/audit-ingestor/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-ingestor.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+audit-ingestor:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: audit-ingestor
+  needs:
+    - job: audit-ingestor:test
+  rules:
+    - changes:
+        - services/audit-ingestor/**/*
+        - deploy/helm/audit-ingestor/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-ingestor.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+audit-ingestor:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: audit-ingestor
+  needs:
+    - job: audit-ingestor:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/audit-ingestor/**/*
+        - deploy/helm/audit-ingestor/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/audit-ingestor.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

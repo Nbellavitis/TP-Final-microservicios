@@ -1,0 +1,3 @@
+{{ include "unoarena-placeholder-lib.deployment" . }}
+---
+{{ include "unoarena-placeholder-lib.service" . }}

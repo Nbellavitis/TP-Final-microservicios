@@ -1,0 +1,44 @@
+rng-deck-service:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: rng-deck-service
+  rules:
+    - changes:
+        - services/rng-deck-service/**/*
+        - deploy/helm/rng-deck-service/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rng-deck-service.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rng-deck-service:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: rng-deck-service
+  needs:
+    - job: rng-deck-service:test
+  rules:
+    - changes:
+        - services/rng-deck-service/**/*
+        - deploy/helm/rng-deck-service/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rng-deck-service.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rng-deck-service:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: rng-deck-service
+  needs:
+    - job: rng-deck-service:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/rng-deck-service/**/*
+        - deploy/helm/rng-deck-service/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rng-deck-service.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

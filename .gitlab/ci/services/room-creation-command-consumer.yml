@@ -1,0 +1,44 @@
+room-creation-command-consumer:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: room-creation-command-consumer
+  rules:
+    - changes:
+        - services/room-creation-command-consumer/**/*
+        - deploy/helm/room-creation-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-creation-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-creation-command-consumer:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: room-creation-command-consumer
+  needs:
+    - job: room-creation-command-consumer:test
+  rules:
+    - changes:
+        - services/room-creation-command-consumer/**/*
+        - deploy/helm/room-creation-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-creation-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+room-creation-command-consumer:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: room-creation-command-consumer
+  needs:
+    - job: room-creation-command-consumer:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/room-creation-command-consumer/**/*
+        - deploy/helm/room-creation-command-consumer/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/room-creation-command-consumer.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

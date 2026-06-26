@@ -130,6 +130,21 @@ Allowed purposes:
 
 The replay API can export authoritative events and seed commitments, but player private hand data is not exposed outside approved dispute scopes.
 
+### Storage tiering and aging plan
+
+Storage tiering is driven by source ownership, not by a shared archive database:
+
+| Store | Hot tier | Warm/cold tier | Archival trigger and owner |
+|---|---|---|---|
+| `room_event_log` | Partitioned event store for active rooms and recent disputes, typically 7-30 days depending on room tier | Compressed object storage by `roomId`/date/tournament id; high-stakes rooms may also copy to WORM audit storage | Room Log Archiver runs after `RoomCompleted` plus hot-retention window; it verifies hash continuity before marking hot partitions eligible for deletion |
+| `room_snapshot` | Latest active/recent room snapshots | Usually not archived; snapshots can be rebuilt from the event log | Snapshot compactor keeps the latest useful snapshot and discards obsolete versions after the log is safely archived |
+| `room_outbox` | Pending and recently published messages, typically 24-72 hours | No long-term archive beyond the canonical event log and broker retention | Room Outbox Relay marks rows published; cleanup job deletes published rows after replay safety window |
+| `room_timer_deadline` | Active challenge/reconnect timers only | No archive; terminal timer outcomes are in the game log | Timer Scheduler deletes/marks timer rows closed after the corresponding domain event is committed |
+| Tournament assignment manifests | Active tournament store | Object/document storage for completed tournament evidence | Tournament Orchestration archives after `TournamentCompleted` and dispute window expiry |
+| Spectator public snapshots/deltas | Key-value/document store for live rooms and active tournaments | Optional compressed public event snapshots for popular completed tournaments | Spectator Projection expires casual room views after a short public-retention window; tournament bracket snapshots remain longer |
+| Ranking history | Relational rating ledger | Cold analytical copy if leaderboard history is large | Ranking owns compaction/export; authoritative rating history remains append-only |
+| Audit WORM | Indexed recent audit records | WORM/object archive with hash-chain metadata | Compliance & Audit owns retention and legal/dispute holds |
+
 ## 4. Tournament Orchestration
 
 ### Primary store

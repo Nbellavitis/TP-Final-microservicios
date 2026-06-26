@@ -1,0 +1,44 @@
+projection-schema-guard:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: projection-schema-guard
+  rules:
+    - changes:
+        - services/projection-schema-guard/**/*
+        - deploy/helm/projection-schema-guard/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/projection-schema-guard.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+projection-schema-guard:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: projection-schema-guard
+  needs:
+    - job: projection-schema-guard:test
+  rules:
+    - changes:
+        - services/projection-schema-guard/**/*
+        - deploy/helm/projection-schema-guard/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/projection-schema-guard.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+projection-schema-guard:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: projection-schema-guard
+  needs:
+    - job: projection-schema-guard:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/projection-schema-guard/**/*
+        - deploy/helm/projection-schema-guard/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/projection-schema-guard.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

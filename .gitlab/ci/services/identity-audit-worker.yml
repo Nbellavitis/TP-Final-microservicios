@@ -1,0 +1,44 @@
+identity-audit-worker:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: identity-audit-worker
+  rules:
+    - changes:
+        - services/identity-audit-worker/**/*
+        - deploy/helm/identity-audit-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-audit-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+identity-audit-worker:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: identity-audit-worker
+  needs:
+    - job: identity-audit-worker:test
+  rules:
+    - changes:
+        - services/identity-audit-worker/**/*
+        - deploy/helm/identity-audit-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-audit-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+identity-audit-worker:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: identity-audit-worker
+  needs:
+    - job: identity-audit-worker:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/identity-audit-worker/**/*
+        - deploy/helm/identity-audit-worker/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/identity-audit-worker.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never

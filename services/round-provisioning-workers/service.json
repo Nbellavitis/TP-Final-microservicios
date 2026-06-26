@@ -1,0 +1,14 @@
+{
+    "context":  "Tournament Orchestration",
+    "displayName":  "Round Provisioning Workers",
+    "greeting":  "UnoArena Round Provisioning Workers placeholder",
+    "kind":  "worker",
+    "routes":  {
+                   "/v1/placeholder":  {
+                                           "result":  "ok",
+                                           "service":  "round-provisioning-workers",
+                                           "message":  "Round Provisioning Workers placeholder response"
+                                       }
+               },
+    "service":  "round-provisioning-workers"
+}

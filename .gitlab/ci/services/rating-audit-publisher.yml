@@ -1,0 +1,44 @@
+rating-audit-publisher:test:
+  extends: .service_test
+  variables:
+    SERVICE_SLUG: rating-audit-publisher
+  rules:
+    - changes:
+        - services/rating-audit-publisher/**/*
+        - deploy/helm/rating-audit-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-audit-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rating-audit-publisher:build:
+  extends: .service_build
+  variables:
+    SERVICE_SLUG: rating-audit-publisher
+  needs:
+    - job: rating-audit-publisher:test
+  rules:
+    - changes:
+        - services/rating-audit-publisher/**/*
+        - deploy/helm/rating-audit-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-audit-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
+rating-audit-publisher:deliver:
+  extends: .service_deliver
+  variables:
+    SERVICE_SLUG: rating-audit-publisher
+  needs:
+    - job: rating-audit-publisher:build
+      artifacts: true
+  rules:
+    - changes:
+        - services/rating-audit-publisher/**/*
+        - deploy/helm/rating-audit-publisher/**/*
+        - .gitlab-ci.yml
+        - .gitlab/ci/services/rating-audit-publisher.yml
+        - .gitlab/ci/templates/service-placeholder.yml
+        - devops-checkpoint/runtime/**/*
+    - when: never
