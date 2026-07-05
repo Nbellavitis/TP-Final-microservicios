@@ -155,6 +155,7 @@ function Get-ValuesYaml {
   }
   $Repository = "registry.example.invalid/unoarena/$($Service.Slug)"
   $Tag = "dev"
+  $ServiceType = "ClusterIP"
   if ($Environment -in @("staging", "production")) {
     $Repository = ""
     $Tag = ""
@@ -170,7 +171,7 @@ image:
   pullPolicy: IfNotPresent
 containerPort: 8080
 service:
-  type: ClusterIP
+  type: $ServiceType
   port: 80
 env:
   UNOARENA_ENVIRONMENT: "$Environment"
@@ -203,7 +204,13 @@ function Get-RulesBlock {
     ".gitlab/ci/templates/service-placeholder.yml",
     "devops-checkpoint/runtime/**/*"
   ) + $Extra
-  $Lines = @("  rules:", "    - changes:")
+  $Lines = @("  rules:")
+  if ($Manual) {
+    $Lines += "    - if: '`$CI_COMMIT_TAG || `$CI_COMMIT_REF_PROTECTED == `"true`"'"
+    $Lines += "      changes:"
+  } else {
+    $Lines += "    - changes:"
+  }
   foreach ($Path in $Paths) {
     $Lines += "        - $Path"
   }
@@ -279,9 +286,9 @@ ${Slug}:integration-staging:
   extends: .service_integration_staging
   variables:
     SERVICE_SLUG: $Slug
-    UNOARENA_API_URL: `${STAGING_BASE_URL}
   needs:
     - job: ${Slug}:deploy-staging
+      artifacts: true
 $Rules
 "@
     $Parts += @"

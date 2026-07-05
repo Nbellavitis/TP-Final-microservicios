@@ -19,7 +19,12 @@ def parse_payloads(stdout):
             try:
                 payloads.append(json.loads(line))
             except json.JSONDecodeError:
-                return text
+                if os.environ.get("UNOARENA_SMOKE_ALLOW_TEXT") == "true":
+                    return text
+                raise AssertionError(
+                    "CLI smoke expected JSON or JSON-lines output. "
+                    "Set UNOARENA_SMOKE_ALLOW_TEXT=true only for a documented temporary CLI gap."
+                )
         return payloads
 
 
@@ -79,16 +84,41 @@ def run_once(cli_path, args, base_url):
     assert_placeholder_response(completed.stdout)
 
 
+def is_truthy(value):
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def print_dry_run(cli_path, args, base_url):
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "smoke": "api-gateway-bff",
+                "mode": "dry-run",
+                "cli": cli_path,
+                "args": args,
+                "target": base_url,
+            },
+            sort_keys=True,
+        )
+    )
+
+
 def main():
     base_url = os.environ.get("UNOARENA_API_URL") or os.environ.get("STAGING_BASE_URL")
+    cli_path = os.environ.get("UNOARENA_CLI", "client-checkpoint/unoarena")
+    args = shlex.split(os.environ.get("UNOARENA_CLI_SMOKE_ARGS", "whoami --json"))
+
+    if is_truthy(os.environ.get("UNOARENA_SMOKE_DRY_RUN", "false")):
+        print_dry_run(cli_path, args, base_url or "https://api-gateway-bff.unoarena-staging.placeholder")
+        return
+
     if not base_url:
         raise SystemExit("UNOARENA_API_URL or STAGING_BASE_URL must point to the staging api-gateway-bff URL")
 
-    cli_path = os.environ.get("UNOARENA_CLI", "client-checkpoint/unoarena")
     if not Path(cli_path).exists():
         raise SystemExit(f"Client CLI not found at {cli_path}; set UNOARENA_CLI to the Client Checkpoint binary")
 
-    args = shlex.split(os.environ.get("UNOARENA_CLI_SMOKE_ARGS", "whoami"))
     failures = []
     for attempt in range(2):
         try:

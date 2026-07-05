@@ -168,6 +168,7 @@ def chart_values(service, environment):
         memory = "128Mi"
     repo = "registry.example.invalid/unoarena/" + service["slug"]
     tag = "dev"
+    service_type = "ClusterIP"
     if environment in {"staging", "production"}:
         repo = ""
         tag = ""
@@ -177,7 +178,7 @@ def chart_values(service, environment):
         "replicaCount": replicas,
         "image": {"repository": repo, "tag": tag, "digest": "", "pullPolicy": "IfNotPresent"},
         "containerPort": 8080,
-        "service": {"type": "ClusterIP", "port": 80},
+        "service": {"type": service_type, "port": 80},
         "env": {
             "UNOARENA_ENVIRONMENT": environment,
             "PLACEHOLDER_KIND": service["kind"],
@@ -208,7 +209,12 @@ def rules_block(slug, extra=None, indent="  ", manual=False):
     ]
     if extra:
         paths.extend(extra)
-    lines = [f"{indent}rules:", f"{indent}  - changes:"]
+    lines = [f"{indent}rules:"]
+    if manual:
+        lines.append(f"{indent}  - if: '$CI_COMMIT_TAG || $CI_COMMIT_REF_PROTECTED == \"true\"'")
+        lines.append(f"{indent}    changes:")
+    else:
+        lines.append(f"{indent}  - changes:")
     lines.extend(f"{indent}      - {path}" for path in paths)
     if manual:
         lines.append(f"{indent}    when: manual")
@@ -273,13 +279,11 @@ def fragment(service):
   extends: .service_integration_staging
   variables:
     SERVICE_SLUG: {slug}
-    UNOARENA_API_URL: ${{
-      STAGING_BASE_URL
-    }}
   needs:
     - job: {slug}:deploy-staging
+      artifacts: true
 {rules_block(slug, extra)}
-""".replace("${\n      STAGING_BASE_URL\n    }", "${STAGING_BASE_URL}"))
+""")
         parts.append(f"""{slug}:deliver-production:
   extends: .service_deliver_production
   variables:
